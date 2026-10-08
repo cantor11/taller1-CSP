@@ -1,0 +1,53 @@
+% !TEX root = ../main.tex
+\section{Problema 4: Acertijo Lógico}
+
+\subsection{Descripción del Problema y Abstracción CSP}
+% Contexto del acertijo con tres amigos, sus edades (24, 25, 26), 
+% gustos musicales (clásica, pop, jazz), y apellidos (García, González, López).
+
+\subsubsection{Pistas del Problema}
+\begin{enumerate}
+    \item Juan es más viejo que González, a quien le gusta la música clásica.
+    \item El fan de la música pop, que no es García, no tiene 24.
+    \item Oscar, quien no es López, tiene 25.
+    \item La música favorita de Darío no es el jazz.
+    \item Las edades de los 3 amigos están entre 24 y 26 años.
+\end{enumerate}
+
+\subsubsection{Variables de Decisión y Dominios}
+% Explicar el enfoque de modelado de variables (por persona o dual/canalización):
+% Variables para edad, apellido y tipo de música, especificando sus dominios finitos.
+
+\subsubsection{Restricciones del Modelo}
+% Formalizar cada una de las 5 pistas en lenguaje matemático/lógico.
+% Incluir restricciones de biyección / alldifferent para nombres, apellidos, música y edades.
+
+\subsection{Detalles de Implementación (\texttt{acertijo.mzn})}
+% Describir aspectos de la implementación en MiniZinc sin incluir código completo.
+
+\subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
+% Analizar si se requieren o si las restricciones directas bastan para encontrar la solución única.
+
+\subsection{Estrategias de Búsqueda y Distribución}
+% Anotaciones de búsqueda exploradas para la resolución del acertijo.
+
+\subsection{Pruebas y Resultados}
+% Presentar la solución única encontrada y estadísticas de búsqueda (nodos, fallos, tiempo).
+
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lcccc}
+        \toprule
+        Nombre & Apellido & Edad & Género Musical Favorito \\
+        \midrule
+        Juan & -- & -- & -- \\
+        Oscar & -- & 25 & -- \\
+        Darío & -- & -- & -- \\
+        \bottomrule
+    \end{tabular}
+    \caption{Solución identificada para el Acertijo Lógico.}
+    \label{tab:acertijo_solucion}
+\end{table}
+
+\subsection{Conclusiones del Ejercicio}
+% Discusión sobre el espacio de búsqueda reducido y la efectividad de la propagación.

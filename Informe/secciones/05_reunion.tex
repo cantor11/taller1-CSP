@@ -1,0 +1,54 @@
+% !TEX root = ../main.tex
+\section{Problema 5: Ubicación de Personas en una Reunión}
+
+\subsection{Descripción del Problema y Abstracción CSP}
+% Descripción: organización de N personas en una fila para una fotografía respetando sus preferencias.
+% Preferencias:
+% 1. next(A, B): la persona A debe estar junto a la persona B.
+% 2. separate(A, B): la persona A debe estar separada de la persona B (no contiguas).
+% 3. distance(A, B, M): las personas A y B deben estar separadas como máximo por M personas.
+
+\subsubsection{Parámetros y Estructura de Entrada}
+% Detallar los arreglos de entrada:
+% personas, next (matriz k x 2), separate (matriz s x 2), distance (matriz w x 3).
+
+\subsubsection{Variables de Decisión y Dominios}
+% Explicar el modelado de variables (ej. pos[p]: posición de la persona p en la fila, o fila[i]: persona en la posición i).
+% Justificar el uso de un modelo dual con canalización (inverse) si aplica.
+
+\subsubsection{Restricciones del Modelo}
+% Formalizar en lenguaje matemático:
+% 1. Cada persona ocupa una única posición (alldifferent).
+% 2. Restricción next(A, B): |pos[A] - pos[B]| = 1.
+% 3. Restricción separate(A, B): |pos[A] - pos[B]| > 1.
+% 4. Restricción distance(A, B, M): |pos[A] - pos[B]| - 1 <= M.
+
+\subsection{Detalles de Implementación (\texttt{reunion.mzn})}
+
+\subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
+% Rompimiento de simetría de inversión de la fila (reflejo izquierda-derecha).
+% Explicar qué simetría se rompe, cómo se implementa y cómo se recuperarían soluciones si se deseara.
+
+\subsection{Estrategias de Búsqueda y Distribución}
+% Anotaciones de búsqueda exploradas para la asignación de posiciones.
+
+\subsection{Pruebas y Análisis Experimental}
+% Presentar pruebas con diferentes tamaños de fila y conjuntos de restricciones (ej. instancias factibles e infactibles).
+
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lcccc}
+        \toprule
+        Instancia ($N$) & Estrategia & Tiempo (s) & Nodos explorados & Nodos fallidos \\
+        \midrule
+        Instancia base ($N=8$) & Default & -- & -- & -- \\
+        Instancia base ($N=8$) & Custom & -- & -- & -- \\
+        Instancia grande ($N=20$) & Default & -- & -- & -- \\
+        \bottomrule
+    \end{tabular}
+    \caption{Resultados experimentales para el problema de la reunión.}
+    \label{tab:reunion_resultados}
+\end{table}
+
+\subsection{Conclusiones del Ejercicio}
+% Discusión de los resultados y efectividad del rompimiento de simetrías.

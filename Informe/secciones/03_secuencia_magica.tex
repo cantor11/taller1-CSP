@@ -1,0 +1,54 @@
+% !TEX root = ../main.tex
+\section{Problema 3: Secuencia Mágica}
+
+\subsection{Descripción del Problema y Abstracción CSP}
+% Explicar qué es una secuencia mágica de longitud n:
+% Secuencia x_0, ..., x_{n-1} de enteros tales que x_i in 0..(n-1) y el número i aparece exactamente x_i veces.
+
+\subsubsection{Parámetros y Datos de Entrada}
+% Parámetro n (longitud de la secuencia).
+
+\subsubsection{Variables de Decisión y Dominios}
+% Variables x_0, ..., x_{n-1} con dominio 0..(n-1).
+
+\subsubsection{Restricciones Básicas}
+% Formalizar matemáticamente:
+% Conteo: para cada i in 0..(n-1), sum_{j=0}^{n-1} (x_j == i) = x_i (o global_cardinality / count).
+
+\subsection{Detalles de Implementación (\texttt{secuencia.mzn})}
+
+\subsubsection{Restricciones Redundantes y Demostración Teórica}
+% El taller exige evaluar e incluir dos restricciones redundantes:
+% 1. \sum_{i=0}^{n-1} x_i = n
+% 2. \sum_{i=0}^{n-1} (i - 1) x_i = 0  (es decir, (-1)*x_0 + ... + (n-2)*x_{n-1} = 0)
+% Explicar matemáticamente por qué estas restricciones son redundantes y cómo ayudan a podar el espacio de búsqueda.
+
+\subsubsection{Rompimiento de Simetrías}
+% Analizar si existen simetrías en las soluciones del problema y si es posible imponer restricciones para romperlas.
+
+\subsection{Estrategias de Búsqueda y Distribución}
+% Anotaciones de búsqueda en MiniZinc para enumerar todas las secuencias mágicas.
+% Comparar el comportamiento del solver con y sin las restricciones redundantes.
+
+\subsection{Pruebas y Análisis Experimental}
+% Pruebas variando la longitud n (ej. n = 4, 5, 10, 20, 50, etc.).
+% Evaluar la reducción del árbol de búsqueda (nodos, fallos, tiempo).
+
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{cccccc}
+        \toprule
+        $n$ & Modelo & Tiempo (s) & Nodos explorados & Nodos fallidos & Soluciones \\
+        \midrule
+        $10$ & Sin redundantes & -- & -- & -- & -- \\
+        $10$ & Con redundantes & -- & -- & -- & -- \\
+        $20$ & Sin redundantes & -- & -- & -- & -- \\
+        $20$ & Con redundantes & -- & -- & -- & -- \\
+        \bottomrule
+    \end{tabular}
+    \caption{Impacto de las restricciones redundantes en la Secuencia Mágica.}
+    \label{tab:secuencia_resultados}
+\end{table}
+
+\subsection{Conclusiones del Ejercicio}
+% Justificación de cómo las restricciones redundantes mejoran la propagación y reducen el espacio de búsqueda.

@@ -1,0 +1,55 @@
+% !TEX root = ../main.tex
+\section{Problema 1: Sudoku}
+
+\subsection{Descripción del Problema y Abstracción CSP}
+% Breve descripción del problema del Sudoku de 9x9 con subcuadrículas de 3x3.
+% Justificación de la adecuación del modelo CSP al problema planteado.
+
+\subsubsection{Parámetros y Datos de Entrada}
+% Definir matrices o arreglos con las pistas iniciales (números prefijados).
+
+\subsubsection{Variables de Decisión y Dominios}
+% Definir con precisión las variables del modelo (ej. matriz X de 9x9).
+% Indicar el dominio de cada variable (ej. D(X_ij) = {1, ..., 9}).
+
+\subsubsection{Restricciones del Modelo}
+% Formalizar en lenguaje matemático/lógico claro:
+% 1. Restricción de filas (todos diferentes).
+% 2. Restricción de columnas (todos diferentes).
+% 3. Restricción de subcuadrículas 3x3 (todos diferentes).
+% 4. Asignación de pistas iniciales.
+
+\subsection{Detalles de Implementación (\texttt{sudoku.mzn})}
+% Describir aspectos relevantes de la implementación sin incluir todo el código.
+
+\subsubsection{Diferentes Implementaciones de Restricciones}
+% Comparar implementaciones: ej. alldifferent vs pares de desigualdades (!=).
+
+\subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
+% Explicar si aplican restricciones redundantes o si hay simetrías. En caso negativo, argumentar por qué.
+
+\subsection{Estrategias de Búsqueda y Distribución}
+% Describir al menos dos anotaciones de búsqueda exploradas en MiniZinc.
+% Ejemplo: int_search(..., first_fail, indomain_min, complete), dom_w_deg, etc.
+
+\subsection{Pruebas y Análisis Experimental}
+% Presentar la batería de pruebas (ej. instancias fáciles, medias, difíciles).
+% Incluir tablas o gráficas con estadísticas de MiniZinc (nodos explorados, nodos fallidos, tiempo de respuesta).
+
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lcccc}
+        \toprule
+        Instancia & Estrategia & Tiempo (s) & Nodos explorados & Nodos fallidos \\
+        \midrule
+        Instancia 1 & Default & -- & -- & -- \\
+        Instancia 1 & Custom 1 & -- & -- & -- \\
+        Instancia 2 & Default & -- & -- & -- \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparación de rendimiento para el problema del Sudoku.}
+    \label{tab:sudoku_resultados}
+\end{table}
+
+\subsection{Conclusiones del Ejercicio}
+% Análisis crítico de los resultados, ventajas y desventajas de las implementaciones ensayadas.

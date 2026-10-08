@@ -1,0 +1,95 @@
+% !TEX root = ./main.tex
+\documentclass[11pt,a4paper]{article}
+
+% --- Paquetes básicos ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Ruta de imágenes
+\graphicspath{{Imagenes/}}
+
+% --- Configuración de enlaces ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=blue,
+}
+
+% --- Configuración de listados de código ---
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{teal},
+    literate=
+        {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+        {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+        {ñ}{{\~n}}1 {Ñ}{{\~N}}1
+}
+
+\begin{document}
+\pagenumbering{roman}
+
+% --- Portada ---
+\begin{titlepage}
+    \centering
+    \includegraphics[width=0.22\textwidth]{logoUV.jpg}\par\vspace{0.8cm}
+    {\scshape\LARGE Universidad del Valle \par}
+    \vspace{0.3cm}
+    {\scshape\Large Escuela de Ingeniería de Sistemas y Computación \par}
+    \vspace{0.3cm}
+    {\scshape\large Programación por Restricciones \par}
+    \vspace{1.2cm}
+    {\huge\bfseries Taller 1: Modelamiento e Implementación de CSPs \par}
+    \vspace{1.2cm}
+    {\Large\textbf{Integrantes:}\par}
+    \vspace{0.4cm}
+    {\large
+    Cristian David Cabrera Pantoja\\
+    Junior Orlando Cantor Arevalo\\
+    Juan Diego Cárdenas Mejía\par}
+    \vfill
+    {\large \textbf{Profesor:} Juan Francisco Díaz Frías \par}
+    \vspace{0.8cm}
+    {\large Cali, Colombia \\ \today \par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+
+% --- Secciones modulares del informe ---
+\input{secciones/01_sudoku}
+\newpage
+
+\input{secciones/02_kakuro}
+\newpage
+
+\input{secciones/03_secuencia_magica}
+\newpage
+
+\input{secciones/04_acertijo_logico}
+\newpage
+
+\input{secciones/05_reunion}
+\newpage
+
+\input{secciones/06_rectangulo}
+\newpage
+
+\input{secciones/07_conclusiones}
+
+\end{document}

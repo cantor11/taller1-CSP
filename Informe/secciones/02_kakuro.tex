@@ -1,0 +1,51 @@
+% !TEX root = ../main.tex
+\section{Problema 2: Kakuro}
+
+\subsection{Descripción del Problema y Abstracción CSP}
+% Descripción del juego tipo crucigrama numérico de sumas cruzadas.
+% Explicar el objetivo: rellenar casillas con dígitos 1 al 9 respetando sumas y sin repetir dígitos en cada tramo.
+
+\subsubsection{Parámetros y Datos de Entrada}
+% Especificar cómo se representan las casillas blancas y las pistas de sumas horizontales y verticales.
+
+\subsubsection{Variables de Decisión y Dominios}
+% Definición precisa de las variables (ej. valor en cada casilla blanca).
+% Dominio: {1, ..., 9}.
+
+\subsubsection{Restricciones del Modelo}
+% Formalizar en lenguaje matemático:
+% 1. Suma de cada serie (horizontal/vertical) igual a la pista dada.
+% 2. Todos los dígitos en cada serie deben ser diferentes (alldifferent).
+
+\subsection{Detalles de Implementación (\texttt{kakuro.mzn})}
+% Describir aspectos relevantes de la implementación sin copiar el código completo.
+
+\subsubsection{Variantes en el Modelado de Restricciones}
+% Comparar enfoques de modelado y propagación para sumas y alldifferent.
+
+\subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
+% Explicar si aplican restricciones redundantes (ej. límites teóricos min/max de suma según longitud) 
+% o justificar si no hay simetrías.
+
+\subsection{Estrategias de Búsqueda y Distribución}
+% Describir y comparar al menos dos anotaciones de búsqueda (selección de variable y valor).
+
+\subsection{Pruebas y Análisis Experimental}
+% Presentar la batería de pruebas y las tablas comparativas con estadísticas de MiniZinc.
+
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{lcccc}
+        \toprule
+        Instancia & Estrategia & Tiempo (s) & Nodos explorados & Nodos fallidos \\
+        \midrule
+        Kakuro 1 & Default & -- & -- & -- \\
+        Kakuro 1 & Custom & -- & -- & -- \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparación experimental del modelo de Kakuro.}
+    \label{tab:kakuro_resultados}
+\end{table}
+
+\subsection{Conclusiones del Ejercicio}
+% Análisis sobre la eficiencia de las búsquedas y el comportamiento del árbol de búsqueda.

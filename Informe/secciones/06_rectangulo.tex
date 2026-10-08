@@ -1,0 +1,57 @@
+% !TEX root = ../main.tex
+\section{Problema 6: Construcción de un Rectángulo}
+
+\subsection{Descripción del Problema y Abstracción CSP}
+% Descripción: colocación/empaquetamiento de n cuadrados de tamaños dados en un rectángulo de ancho W y alto H.
+% Requerimientos: sin solapamiento, dentro de los límites del contenedor, todos los cuadrados deben ser utilizados.
+
+\subsubsection{Parámetros y Datos de Entrada}
+% n (número de cuadrados), tamaño de lado de cada cuadrado s_i, anchura W y altura H del rectángulo contenedor.
+
+\subsubsection{Variables de Decisión y Dominios}
+% Coordenadas de posición para cada cuadrado i: (x_i, y_i), típicamente la esquina inferior izquierda.
+% Dominios: x_i in 0..(W - s_i), y_i in 0..(H - s_i).
+
+\subsubsection{Restricciones del Modelo}
+% Formalizar en lenguaje matemático:
+% 1. Límites del contenedor (asegurados por los dominios o restricciones de cota).
+% 2. No solapamiento entre pares de cuadrados:
+%    Para cada par (i, j): (x_i + s_i <= x_j) \/ (x_j + s_j <= x_i) \/ (y_i + s_i <= y_j) \/ (y_j + s_j <= y_i)
+%    O mediante predicados globales como diffn.
+
+\subsection{Detalles de Implementación (\texttt{rectangulo.mzn})}
+
+\subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
+% Restricción redundante de área: sum_{i=1}^n (s_i^2) = W * H.
+% Restricciones acumulativas 1D en X y en Y (cumulative).
+% Rompimiento de simetrías geométricas: reflexiones horizontal/vertical y rotaciones (cuando W = H).
+% Explicar qué simetrías se rompen y cómo recuperar soluciones simétricas.
+
+\subsection{Estrategias de Búsqueda y Distribución}
+% Anotaciones de búsqueda en MiniZinc adaptadas a problemas de empaquetamiento 2D.
+% Heurísticas de ordenamiento (ej. ordenar cuadrados de mayor a menor tamaño).
+
+\subsection{Pruebas y Análisis Experimental}
+% Pruebas con la instancia del taller (cuadrados 3, 2, 2, 1, 1, 1 en rectángulo 5x4) y otras instancias.
+% Estadísticas comparativas (nodos, fallos, tiempo).
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{lcccc}
+        \toprule
+        Instancia & Configuración & Tiempo (s) & Nodos explorados & Fallos \\
+        \midrule
+        Taller ($5 \times 4$) & Base & -- & -- & -- \\
+        Taller ($5 \times 4$) & Simetrías + Redundantes & -- & -- & -- \\
+        Instancia 2 & Base & -- & -- & -- \\
+        Instancia 2 & Optimizada & -- & -- & -- \\
+        \bottomrule
+    \end{tabular}
+    \caption{Evaluación experimental de colocación de cuadrados.}
+    \label{tab:rectangulo_resultados}
+\end{table}
+
+\subsection{Conclusiones del Ejercicio}
+% Discusión sobre la efectividad del predicado global (diffn) frente a restricciones disyuntivas explícitas
+% y el impacto del rompimiento de simetrías.
