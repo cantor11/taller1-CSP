@@ -1,53 +1,214 @@
 % !TEX root = ../main.tex
 \section{Problema 4: Acertijo Lógico}
+\label{sec:acertijo_logico}
 
 \subsection{Descripción del Problema y Abstracción CSP}
-% Contexto del acertijo con tres amigos, sus edades (24, 25, 26), 
-% gustos musicales (clásica, pop, jazz), y apellidos (García, González, López).
+
+El cuarto ejercicio plantea un problema clásico de deducción lógica combinatoria (perteneciente a la familia de problemas tipo \emph{Zebra} o de emparejamiento multidimensional) sobre tres amigos cuyos nombres de pila son \textbf{Juan}, \textbf{Oscar} y \textbf{Darío}. Cada uno posee un único apellido dentro del conjunto \{\emph{González}, \emph{García}, \emph{López}\}, una edad entera comprendida entre $24$ y $26$ años, y un único género musical favorito entre \{\emph{clásica}, \emph{pop}, \emph{jazz}\}. El propósito consiste en determinar de forma exacta y sin ambigüedad el nombre completo, la edad y la preferencia musical de cada amigo a partir de las pistas lógicas suministradas.
 
 \subsubsection{Pistas del Problema}
+
+El enunciado establece cinco proposiciones lógicas que restringen simultáneamente las cuatro dimensiones del problema:
 \begin{enumerate}
-    \item Juan es más viejo que González, a quien le gusta la música clásica.
-    \item El fan de la música pop, que no es García, no tiene 24.
-    \item Oscar, quien no es López, tiene 25.
-    \item La música favorita de Darío no es el jazz.
-    \item Las edades de los 3 amigos están entre 24 y 26 años.
+    \item \textbf{Pista 1:} Juan es más viejo que González, a quien le gusta la música clásica.
+    \item \textbf{Pista 2:} El fan de la música pop, que no es García, no tiene $24$ años.
+    \item \textbf{Pista 3:} Oscar, quien no es López, tiene $25$ años.
+    \item \textbf{Pista 4:} La música favorita de Darío no es el jazz.
+    \item \textbf{Pista 5:} Las edades de los tres amigos están entre $24$ y $26$ años.
 \end{enumerate}
 
+\paragraph{Elección de la representación CSP incondicional.}
+En problemas de emparejamiento multiatributo existen dos enfoques clásicos de modelamiento:
+\begin{itemize}
+    \item \emph{Enfoque indexado por persona (descartado por inducir condicionamiento):} definir arreglos de atributos indexados por los tres nombres de pila. Bajo dicho esquema, traducir proposiciones cruzadas entre atributos ajenos al nombre —tales como ``a González le gusta la música clásica'' o ``el fan del pop no es García''— exige cuantificar sobre las tres personas mediante implicaciones condicionadas al valor de las variables (o indexación variable de arreglos), introduciendo disyunciones reificadas innecesarias y contraviniendo el principio de formulación directa e incondicional de restricciones.
+    \item \emph{Enfoque orientado a edades como dominio común de enlace (adoptado):} representar cada atributo nominal (cada nombre, cada apellido y cada género musical) mediante una variable de decisión entera cuyo valor es directamente la \textbf{edad} $e \in E = \{24, 25, 26\}$ de la persona que posee dicho atributo. Como las tres personas tienen edades distintas en $E$, dos atributos cualesquiera corresponden al mismo individuo si y solo si sus variables asociadas asumen exactamente el mismo valor de edad, y difieren de individuo si y solo si asumen edades distintas. De este modo, la totalidad de las pistas se traduce en igualdades y desigualdades algebraicas binarias directas, libres por completo de restricciones condicionadas.
+\end{itemize}
+
+\subsubsection{Parámetros y Datos de Entrada}
+
+Al tratarse de un acertijo deductivo cerrado y autocontenido, el modelo $\mathcal{P}_{\text{AL}} := \langle \mathcal{C} \ ; \ \mathcal{DE} \rangle$ \textbf{no recibe parámetros variables externos} mediante archivos de datos. Las constantes estructurales fijas del dominio del discurso quedan determinadas íntegramente por la Pista 5: el conjunto finito de edades posibles $E = \{24, 25, 26\}$ de cardinalidad $|E| = 3$.
+
 \subsubsection{Variables de Decisión y Dominios}
-% Explicar el enfoque de modelado de variables (por persona o dual/canalización):
-% Variables para edad, apellido y tipo de música, especificando sus dominios finitos.
+
+Se definen nueve variables de decisión enteras agrupadas en tres categorías disjuntas de tres elementos cada una:
+\begin{align*}
+    \mathcal{N} &= \{x_{\text{Juan}},\, x_{\text{Oscar}},\, x_{\text{Darío}}\} && \text{(edades asociadas a cada nombre de pila)}, \\
+    \mathcal{A} &= \{x_{\text{González}},\, x_{\text{García}},\, x_{\text{López}}\} && \text{(edades asociadas a cada apellido)}, \\
+    \mathcal{M} &= \{x_{\text{Clásica}},\, x_{\text{Pop}},\, x_{\text{Jazz}}\} && \text{(edades asociadas a cada género musical)}.
+\end{align*}
+Semánticamente, $x_{\alpha} = e$ significa que el único amigo caracterizado por el atributo $\alpha \in \mathcal{N} \cup \mathcal{A} \cup \mathcal{M}$ tiene exactamente $e$ años de edad.
+
+Siguiendo el criterio de excluir \emph{a priori} de los dominios todos los valores imposibles deducibles directamente de las pistas unarias y de orden estricto (consistencia de nodo previa a la búsqueda), la declaración de dominios finitos $\mathcal{DE}$ se establece como:
+\begin{align*}
+    D(x_{\text{Oscar}})    &= \{25\}         && \text{(por Pista 3: Oscar tiene exactamente $25$ años)}, \\
+    D(x_{\text{Juan}})     &= \{25, 26\}     && \text{(por Pista 1: } x_{\text{Juan}} > x_{\text{González}} \ge 24 \implies x_{\text{Juan}} \neq 24\text{)}, \\
+    D(x_{\text{González}}) &= \{24, 25\}     && \text{(por Pista 1: } x_{\text{González}} < x_{\text{Juan}} \le 26 \implies x_{\text{González}} \neq 26\text{)}, \\
+    D(x_{\text{Pop}})      &= \{25, 26\}     && \text{(por Pista 2: el fan de la música pop no tiene $24$ años)}, \\
+    D(x_{v})               &= \{24, 25, 26\} && \forall v \in \{\text{Darío},\, \text{García},\, \text{López},\, \text{Clásica},\, \text{Jazz}\}.
+\end{align*}
+Esta reducción inicial encoge el espacio cartesiano bruto de $3^9 = 19\,683$ tuplas a $1 \times 2^3 \times 3^5 = 1\,944$ estados antes de evaluar una sola restricción binaria o global.
 
 \subsubsection{Restricciones del Modelo}
-% Formalizar cada una de las 5 pistas en lenguaje matemático/lógico.
-% Incluir restricciones de biyección / alldifferent para nombres, apellidos, música y edades.
+
+El conjunto de restricciones $\mathcal{C}$ se compone de dos familias puramente algebraicas e incondicionales:
+
+\paragraph{1. Restricciones estructurales de biyección por categoría.}
+Cada uno de los tres amigos posee un nombre distinto, un apellido distinto, un género musical distinto y una edad distinta en $E = \{24, 25, 26\}$:
+\begin{align}
+    B_{\mathcal{N}} &: \quad \text{all\_different}(x_{\text{Juan}},\, x_{\text{Oscar}},\, x_{\text{Darío}}), \label{eq:al_bij_n} \\
+    B_{\mathcal{A}} &: \quad \text{all\_different}(x_{\text{González}},\, x_{\text{García}},\, x_{\text{López}}), \label{eq:al_bij_a} \\
+    B_{\mathcal{M}} &: \quad \text{all\_different}(x_{\text{Clásica}},\, x_{\text{Pop}},\, x_{\text{Jazz}}). \label{eq:al_bij_m}
+\end{align}
+
+\emph{Justificación formal de la unicidad de edades:} El supuesto estructural de que los tres amigos tienen edades mutuamente distintas entre $\{24, 25, 26\}$ no solo es imprescindible para que la edad actúe como clave biyectiva entre atributos, sino que es matemáticamente necesario para que el acertijo posea solución única. En efecto, si se permitiesen edades repetidas (modelando por persona sin exigir edades distintas), la asignación donde Juan tiene $26$ años y tanto Oscar como Darío tienen $25$ años permitiría que Darío sea González ($25$ años, música clásica), porque la Pista 2 (``el fan del pop no tiene $24$'') dejaría de excluir el emparejamiento cuando nadie tiene $24$ años. La verificación experimental confirma que omitir la unicidad de edades eleva el conjunto de soluciones de $1$ a $6$ asignaciones distintas.
+
+\paragraph{2. Restricciones relacionales derivadas de las pistas.}
+Cada proposición del enunciado se proyecta directamente en relaciones binarias de orden, igualdad o desigualdad:
+\begin{align}
+    C_{1a} &: \quad x_{\text{Juan}} > x_{\text{González}} && \text{(Pista 1: Juan es mayor que González)}, \label{eq:al_c1a} \\
+    C_{1b} &: \quad x_{\text{González}} = x_{\text{Clásica}} && \text{(Pista 1: a González le gusta la música clásica)}, \label{eq:al_c1b} \\
+    C_{2a} &: \quad x_{\text{Pop}} \neq x_{\text{García}} && \text{(Pista 2: el fan del pop no es García)}, \label{eq:al_c2a} \\
+    C_{2b} &: \quad x_{\text{Pop}} \neq 24 && \text{(Pista 2: absorbida en } D(x_{\text{Pop}}) = \{25, 26\}\text{)}, \label{eq:al_c2b} \\
+    C_{3a} &: \quad x_{\text{Oscar}} \neq x_{\text{López}} && \text{(Pista 3: Oscar no se apellida López)}, \label{eq:al_c3a} \\
+    C_{3b} &: \quad x_{\text{Oscar}} = 25 && \text{(Pista 3: absorbida en } D(x_{\text{Oscar}}) = \{25\}\text{)}, \label{eq:al_c3b} \\
+    C_{4}  &: \quad x_{\text{Darío}} \neq x_{\text{Jazz}} && \text{(Pista 4: la música favorita de Darío no es el jazz)}. \label{eq:al_c4}
+\end{align}
 
 \subsection{Detalles de Implementación (\texttt{acertijo.mzn})}
-% Describir aspectos de la implementación en MiniZinc sin incluir código completo.
 
-\subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
-% Analizar si se requieren o si las restricciones directas bastan para encontrar la solución única.
+En \texttt{acertijo.mzn} se declaran las nueve variables enteras con sus dominios finitos podados, se agrupan en tres arreglos unidimensionales por categoría para aplicar el predicado global \texttt{alldifferent} y reconstruir la salida tabular mediante comprensión declarativa por edad, y se imponen las cinco restricciones binarias activas ($C_{1a}, C_{1b}, C_{2a}, C_{3a}, C_{4}$).
+
+Para evaluar rigurosamente la calidad de esta implementación, se contrastaron tres variantes de codificación:
+\begin{enumerate}
+    \item \textbf{Modelo incondicional con \texttt{alldifferent} global (\texttt{acertijo.mzn}):} produce únicamente $7$ variables enteras en FlatZinc (tras unificar la constante $x_{\text{Oscar}} = 25$ y la igualdad $x_{\text{González}} = x_{\text{Clásica}}$), $0$ variables booleanas reificadas y resuelve el problema íntegramente en la fase de propagación inicial con $9$ propagaciones y $0$ propagadores residuales.
+    \item \textbf{Descomposición binaria por pares de desigualdades ($\neq$):} reemplaza cada predicado global \texttt{alldifferent} de tamaño $3$ por $\binom{3}{2} = 3$ desigualdades binarias ($9$ en total). Aunque evita variables booleanas, pierde la capacidad de detectar conjuntos de Hall de cardinalidad $2$, dejando $7$ propagadores activos tras la raíz y obligando al motor a ramificar.
+    \item \textbf{Modelo alternativo condicionado por persona (evaluado como línea base de contraste):} al indexar apellido y música por persona usando implicaciones reificadas, el compilador genera $28$ variables en el motor ($18$ booleanas auxiliares de semirreificación), $26$ propagadores y $70$ propagaciones ($7.8\times$ más trabajo operativo que \texttt{acertijo.mzn}), confirmando cuantitativamente la superioridad del modelo orientado a edades.
+\end{enumerate}
+
+\subsubsection{Restricciones Redundantes}
+
+Dado que cada categoría $\mathcal{K} \in \{\mathcal{N}, \mathcal{A}, \mathcal{M}\}$ constituye una permutación biyectiva del conjunto cerrado $E = \{24, 25, 26\}$, toda solución válida satisface necesariamente las invariantes lineales de suma constante y la transitividad de orden entre $C_{1a}$ y $C_{1b}$:
+\[
+    R_{\Sigma, \mathcal{K}} : \ \sum_{v \in \mathcal{K}} x_v = 24 + 25 + 26 = 75 \quad (\forall \mathcal{K} \in \{\mathcal{N}, \mathcal{A}, \mathcal{M}\}), \qquad R_{\text{ord}} : \ x_{\text{Juan}} > x_{\text{Clásica}}.
+\]
+Sin embargo, el análisis teórico y experimental demuestra que \textbf{no es conveniente ni necesario incluir dichas restricciones redundantes en \texttt{acertijo.mzn}}:
+\begin{itemize}
+    \item Bajo el predicado global \texttt{alldifferent}, la consistencia de hiper-arco (dominio) subsume por completo la poda de cotas de $\sum_{v \in \mathcal{K}} x_v = 75$ y resuelve el problema en el nodo raíz con $1$ nodo y $0$ fallos, por lo que cualquier restricción adicional solo añadiría sobrecarga de inicialización.
+    \item Incluso bajo la descomposición binaria ($\neq$), donde en la raíz se tiene $D(x_{\text{Pop}}) = D(x_{\text{Jazz}}) = \{25, 26\}$ y $D(x_{\text{Clásica}}) = \{24, 25\}$, añadir la suma redundante $x_{\text{Clásica}} + x_{\text{Pop}} + x_{\text{Jazz}} = 75$ tampoco logra podar el valor $25$ de $D(x_{\text{Clásica}})$, puesto que la consistencia de cotas sobre una ecuación lineal evalúa independientemente los extremos de cada variable ($75 - \max D(x_{\text{Pop}}) - \max D(x_{\text{Jazz}}) = 75 - 26 - 26 = 23 \le x_{\text{Clásica}} \le 75 - 25 - 25 = 25$), ignorando que $x_{\text{Pop}}$ y $x_{\text{Jazz}}$ no pueden valer $25$ simultáneamente. Experimentalmente, agregar las sumas redundantes al modelo binario mantiene inalterados los $3$ nodos y $1$ fallo, pero incrementa las propagaciones de $12$ a $22$ ($+83.3$\%).
+\end{itemize}
+
+\subsubsection{Rompimiento de Simetrías}
+
+El modelo $\mathcal{P}_{\text{AL}}$ \textbf{carece por completo de simetrías de variables y de valores}:
+\begin{enumerate}
+    \item \textbf{Distinguibilidad semántica de variables:} Cada variable representa una entidad nominal única e irrepetible del mundo real (Juan, Oscar, Darío, González, García, López, clásica, pop, jazz) sometida a restricciones asimétricas individuales ($x_{\text{Oscar}} = 25$, $x_{\text{Juan}} > x_{\text{González}}$, $x_{\text{Pop}} \neq 24$, $x_{\text{Darío}} \neq x_{\text{Jazz}}$). Ninguna permutación no trivial $\pi$ de variables deja invariante la estructura sintáctica de $\mathcal{C}$ ni los dominios $\mathcal{DE}$.
+    \item \textbf{Asimetría de valores y solución única:} Los tres valores del dominio $\{24, 25, 26\}$ poseen orden total aritmético explotado por la desigualdad estricta $x_{\text{Juan}} > x_{\text{González}}$ y por las constantes fijadas ($25$ y $\neq 24$). Además, como $|\text{Sol}(\mathcal{P}_{\text{AL}})| = 1$, la órbita del conjunto de soluciones bajo cualquier grupo de transformaciones es trivial de cardinalidad uno, haciendo inaplicable cualquier restricción de rompimiento de simetrías.
+\end{enumerate}
 
 \subsection{Estrategias de Búsqueda y Distribución}
-% Anotaciones de búsqueda exploradas para la resolución del acertijo.
+
+En \texttt{acertijo.mzn} se especifica una estrategia de distribución completa sobre el vector concatenado de las nueve variables de decisión empleando \texttt{first\_fail} (selección de la variable no fijada con menor dominio actual) combinada con \texttt{indomain\_min} (asignación ascendente del mínimo valor disponible). Adicionalmente, se compararon siete estrategias combinando \texttt{input\_order}, \texttt{first\_fail}, \texttt{dom\_w\_deg} y la búsqueda por defecto del solver con \texttt{indomain\_min}, \texttt{indomain\_max} e \texttt{indomain\_split}, tanto en modo de primera solución (\texttt{-n 1}) como de enumeración exhaustiva (\texttt{-a}).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.98\textwidth]{acertijo_arbol_propagacion.png}
+    \caption{Contraste operativo en el Acertijo Lógico: (a) cascada deductiva determinista en el nodo raíz con \texttt{alldifferent} global ($1$ nodo, $0$ fallos, profundidad $0$); (b) árbol binario con descomposición por pares ($\neq$), donde el punto fijo $2$-consistente exige ramificar sobre $x_{\text{González}} \in \{24, 25\}$.}
+    \label{fig:acertijo_arbol}
+\end{figure}
+
+La Figura~\ref{fig:acertijo_arbol} expone con precisión el mecanismo deductivo subyacente y la diferencia exacta entre consistencia global y consistencia de arco binaria:
+\begin{enumerate}
+    \item \textbf{Resolución sin búsqueda bajo \texttt{alldifferent} global (Figura~\ref{fig:acertijo_arbol}a):}
+    \begin{itemize}
+        \item \emph{Paso 1 (Nombres):} Con $D(x_{\text{Oscar}}) = \{25\}$ y $D(x_{\text{Juan}}) = \{25, 26\}$, la desigualdad con Oscar fija $x_{\text{Juan}} = 26$; enseguida, $B_{\mathcal{N}}$ fuerza por exclusión $x_{\text{Darío}} = 24$.
+        \item \emph{Paso 2 (Conjunto de Hall en Música):} Al propagarse $x_{\text{Darío}} = 24$ hacia $C_4$ ($x_{\text{Darío}} \neq x_{\text{Jazz}}$), el valor $24$ se elimina de $D(x_{\text{Jazz}})$, quedando $D(x_{\text{Jazz}}) = \{25, 26\}$. Unido a $D(x_{\text{Pop}}) = \{25, 26\}$, el subconjunto de dos variables $\{x_{\text{Pop}}, x_{\text{Jazz}}\}$ posee como unión de dominios exactamente el conjunto $\{25, 26\}$ de cardinalidad $2$ (\textbf{conjunto de Hall de tamaño $2$}).
+        \item \emph{Paso 3 (Poda de hiper-arco y cascada final):} El propagador global de $B_{\mathcal{M}}$ detecta el conjunto de Hall y poda $\{25, 26\}$ de $D(x_{\text{Clásica}})$, fijando $x_{\text{Clásica}} = 24$. Por $C_{1b}$ se instancia $x_{\text{González}} = 24$; como $C_{3a}$ ($x_{\text{Oscar}} \neq x_{\text{López}}$) ya había podado $25$ de $D(x_{\text{López}}) = \{24, 26\}$, la biyección $B_{\mathcal{A}}$ fija $x_{\text{López}} = 26$ y $x_{\text{García}} = 25$. Finalmente, $C_{2a}$ ($x_{\text{Pop}} \neq x_{\text{García}} = 25$) fija $x_{\text{Pop}} = 26$ y $B_{\mathcal{M}}$ concluye $x_{\text{Jazz}} = 25$. Como todas las variables quedan univaluadas en la raíz ($\text{peakDepth} = 0$), las siete estrategias de distribución empatan exactamente en \textbf{$1$ nodo explorado y $0$ fallos} (incluso desactivando la optimización del compilador con \texttt{-O0}).
+    \end{itemize}
+    \item \textbf{Aparición de búsqueda bajo descomposición binaria ($\neq$) (Figura~\ref{fig:acertijo_arbol}b):}
+    Cuando $B_{\mathcal{M}}$ se descompone en las tres desigualdades binarias $x_{\text{Clásica}} \neq x_{\text{Pop}}$, $x_{\text{Clásica}} \neq x_{\text{Jazz}}$ y $x_{\text{Pop}} \neq x_{\text{Jazz}}$, cada restricción binaria es individualmente arco-consistente sobre $D(x_{\text{Pop}}) = D(x_{\text{Jazz}}) = \{25, 26\}$ y $D(x_{\text{Clásica}}) = \{24, 25\}$ (pues para cada valor en una variable existe soporte distinto en la otra). El motor alcanza así un punto fijo $2$-consistente no resuelto con cinco variables residuales y debe ejecutar un \emph{Split} sobre $x_{\text{González}} \in \{24, 25\}$:
+    \begin{itemize}
+        \item Al buscar \textbf{la primera solución (\texttt{-n 1})}, las estrategias con selección mínima o bisección (tales como \texttt{first\_fail} o \texttt{input\_order} combinadas con \texttt{indomain\_min}, \texttt{indomain\_split} y \texttt{dom\_w\_deg}) eligen primero la rama izquierda $x_{\text{González}} = 24$, hallando la solución de inmediato en \textbf{$2$ nodos, $0$ fallos y $7$ propagaciones}; en cambio, las heurísticas de valor máximo (\texttt{indomain\_max}) exploran primero la rama derecha $x_{\text{González}} = 25$, la cual obliga $x_{\text{Clásica}} = 25 \Rightarrow x_{\text{Pop}} = x_{\text{Jazz}} = 26$ (fallo por violar $x_{\text{Pop}} \neq x_{\text{Jazz}}$), retrocediendo hacia $x_{\text{González}} = 24$ con \textbf{$3$ nodos, $1$ fallo y $12$ propagaciones}.
+        \item Al exigir \textbf{enumeración exhaustiva (\texttt{-a})} para certificar unicidad, toda estrategia completa debe inspeccionar ambas ramas del punto de decisión, convergiendo en $3$ nodos, $1$ fallo y $12$ propagaciones ($16$ propagaciones si no se acotan los dominios iniciales \emph{a priori}).
+    \end{itemize}
+\end{enumerate}
 
 \subsection{Pruebas y Resultados}
-% Presentar la solución única encontrada y estadísticas de búsqueda (nodos, fallos, tiempo).
+
+La verificación experimental de \texttt{acertijo.mzn} se llevó a cabo en tres niveles complementarios: (i) validación cruzada de la solución única entre \textbf{Gecode 6.4.0} y \textbf{Chuffed 0.14.0}, obteniendo exactamente la misma asignación biyectiva (Tabla~\ref{tab:acertijo_solucion}); (ii) evaluación comparativa de codificaciones y estrategias de distribución (Tabla~\ref{tab:acertijo_estrategias}); y (iii) una batería de pruebas de \textbf{minimalidad e independencia de pistas} mediante ablación controlada y perturbación contradictoria (Tabla~\ref{tab:acertijo_ablacion_pistas}).
 
 \begin{table}[htbp]
     \centering
-    \begin{tabular}{lcccc}
+    \begin{tabular}{llcl}
         \toprule
-        Nombre & Apellido & Edad & Género Musical Favorito \\
+        Nombre de pila & Apellido & Edad (años) & Género musical favorito \\
         \midrule
-        Juan & -- & -- & -- \\
-        Oscar & -- & 25 & -- \\
-        Darío & -- & -- & -- \\
+        Juan  & López    & $26$ & Pop \\
+        Oscar & García   & $25$ & Jazz \\
+        Darío & González & $24$ & Clásica \\
         \bottomrule
     \end{tabular}
-    \caption{Solución identificada para el Acertijo Lógico.}
+    \caption{Solución única identificada y certificada para el Acertijo Lógico.}
     \label{tab:acertijo_solucion}
 \end{table}
 
+Es inmediato comprobar manualmente que la Tabla~\ref{tab:acertijo_solucion} satisface las cinco pistas: (1) Juan ($26$) es mayor que Darío González ($24$), quien prefiere música clásica; (2) el fan del pop es Juan López (no García) y tiene $26 \neq 24$ años; (3) Oscar se apellida García (no López) y tiene $25$ años; (4) la música favorita de Darío es clásica (no jazz); y (5) las edades son $\{24, 25, 26\}$.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \setlength{\tabcolsep}{3.4pt}
+    \begin{tabular}{llrrrrrrr}
+        \toprule
+        Codificación del modelo & Estrategia & Vars. & Prop. & \multicolumn{2}{c}{1ra (\texttt{-n 1})} & \multicolumn{3}{c}{Todas (\texttt{-a})} \\
+        \cmidrule(lr){5-6} \cmidrule(lr){7-9}
+        (Solver) & de búsqueda & motor & act. & Nod. & Fall. & Nod. & Fall. & Propag. \\
+        \midrule
+        \texttt{alldifferent} (Gecode)   & Todas ($7$ eval.)                   & $9$  & $0$  & $1$ & $0$ & $1$ & $0$ & $9$  \\
+        \texttt{alldifferent} (Chuffed)  & \texttt{first\_fail} + \texttt{min}  & $52$ & $13$ & $1$ & $0$ & $1$ & $1$ & $33$ \\
+        \midrule
+        Binaria ($\neq$), dom. podado    & \texttt{first\_fail} + \texttt{min}  & $8$  & $7$  & $2$ & $0$ & $3$ & $1$ & $12$ \\
+        Binaria ($\neq$), dom. podado    & \texttt{input\_order} + \texttt{min} & $8$  & $7$  & $2$ & $0$ & $3$ & $1$ & $12$ \\
+        Binaria ($\neq$), dom. podado    & \texttt{first\_fail} + \texttt{split}& $8$  & $7$  & $2$ & $0$ & $3$ & $1$ & $12$ \\
+        Binaria ($\neq$), dom. podado    & \texttt{dom\_w\_deg} + \texttt{min}  & $8$  & $7$  & $2$ & $0$ & $3$ & $1$ & $12$ \\
+        Binaria ($\neq$), dom. podado    & \texttt{first\_fail} + \texttt{max}  & $8$  & $7$  & $3$ & $1$ & $3$ & $1$ & $12$ \\
+        Binaria ($\neq$), dom. podado    & \texttt{input\_order} + \texttt{max} & $8$  & $7$  & $3$ & $1$ & $3$ & $1$ & $12$ \\
+        \midrule
+        Binaria ($\neq$), dom. $\{24,25,26\}$ & \texttt{first\_fail} + \texttt{min}  & $8$  & $7$  & $2$ & $0$ & $3$ & $1$ & $16$ \\
+        Binaria ($\neq$) + $\sum = 75$   & \texttt{first\_fail} + \texttt{min}  & $8$  & $9$  & $2$ & $0$ & $3$ & $1$ & $22$ \\
+        Condicionado por persona         & \texttt{first\_fail} + \texttt{min}  & $28$ & $26$ & $2$ & $0$ & $3$ & $1$ & $70$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{Desempeño comparativo de codificaciones y estrategias de distribución para el Acertijo Lógico (tiempos de resolución entre $0.07\text{ ms}$ y $1.03\text{ ms}$). En Chuffed \texttt{-a}, el fallo reportado corresponde a la refutación final de completitud tras hallar la única solución.}
+    \label{tab:acertijo_estrategias}
+\end{table}
+
+Finalmente, la Tabla~\ref{tab:acertijo_ablacion_pistas} demuestra que el sistema de pistas del enunciado es \textbf{minimal e irredundante}: al suprimir individualmente cualquiera de las cuatro desigualdades ($x_{\text{Pop}} \neq 24$, $x_{\text{Darío}} \neq x_{\text{Jazz}}$, $x_{\text{Oscar}} \neq x_{\text{López}}$ o $x_{\text{Pop}} \neq x_{\text{García}}$), el problema deja de resolverse en la raíz y pasa a admitir exactamente \textbf{$2$ soluciones válidas} ($3$ nodos, $0$ fallos, profundidad $1$). Por ejemplo, al relajar $x_{\text{Pop}} \neq 24$, emerge la solución espuria adicional donde Oscar es González ($25$, clásica), Juan es García ($26$, jazz) y Darío es López ($24$, pop). Por el contrario, al inyectar la restricción contradictoria $x_{\text{Pop}} = x_{\text{García}}$, el solver certifica insatisfacibilidad (\texttt{UNSATISFIABLE}) en $0$ soluciones.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \setlength{\tabcolsep}{3.8pt}
+    \begin{tabular}{llrrrr}
+        \toprule
+        Caso de prueba experimental & Efecto semántico verificado & Sol. & Nodos & Fallos & Propag. \\
+        \midrule
+        Modelo completo (\texttt{acertijo.mzn})      & Unicidad exacta            & $1$ & $1$  & $0$ & $9$  \\
+        Sin Pista 2b ($x_{\text{Pop}} \neq 24$)      & Relaja dominio de Pop      & $2$ & $3$  & $0$ & $13$ \\
+        Sin Pista 4 ($x_{\text{Darío}} \neq x_{\text{Jazz}}$) & Ambigüedad Clásica/Jazz & $2$ & $3$  & $0$ & $12$ \\
+        Sin Pista 3a ($x_{\text{Oscar}} \neq x_{\text{López}}$)& Ambigüedad García/López& $2$ & $3$  & $0$ & $16$ \\
+        Sin Pista 2a ($x_{\text{Pop}} \neq x_{\text{García}}$) & Ambigüedad Pop/Jazz    & $2$ & $3$  & $0$ & $11$ \\
+        Sin biyección de edades distintas            & Colapso de clave biyectiva & $6$ & $11$ & $0$ & $29$ \\
+        Contradictoria ($x_{\text{Pop}} = x_{\text{García}}$) & Instancia insatisfacible & $0$ & $0$  & $1$ & $4$  \\
+        \bottomrule
+    \end{tabular}
+    \caption{Batería de pruebas de validación, minimalidad de pistas e insatisfacibilidad en Gecode 6.4.0 (\texttt{-a}).}
+    \label{tab:acertijo_ablacion_pistas}
+\end{table}
+
 \subsection{Conclusiones del Ejercicio}
-% Discusión sobre el espacio de búsqueda reducido y la efectividad de la propagación.
+
+\begin{enumerate}
+    \item \textbf{Eliminación total de reificación mediante el dominio de enlace por edades:} Escoger la edad $E = \{24, 25, 26\}$ como valor de las variables asociadas a cada nombre, apellido y género musical transforma todas las relaciones cruzadas del acertijo en restricciones algebraicas directas sin condicionamiento, reduciendo en un $87.1$\% las propagaciones ($9$ frente a $70$) y eliminando las $18$ variables booleanas auxiliares requeridas por un modelo condicionado indexado por persona.
+    \item \textbf{Poder deductivo de la consistencia de hiper-arco frente a la descomposición binaria:} La restricción global \texttt{alldifferent} detecta el conjunto de Hall $\{x_{\text{Pop}}, x_{\text{Jazz}}\} \subseteq \{25, 26\}$ y resuelve completamente el acertijo en el nodo raíz ($1$ nodo, $0$ fallos, profundidad $0$), volviendo invariante el desempeño frente a la estrategia de distribución. En cambio, la descomposición en desigualdades binarias ($\neq$) queda atrapada en un punto fijo $2$-consistente que exige ramificar sobre $x_{\text{González}}$, haciendo que la elección del valor inicial (\texttt{indomain\_min} frente a \texttt{indomain\_max}) determine la presencia o ausencia de fallos al buscar la primera solución.
+    \item \textbf{Minimalidad de las pistas e irrelevancia operativa de restricciones redundantes y simetrías:} El estudio de ablación certificó que cada una de las pistas del enunciado (incluida la distinción biyectiva de edades) es estrictamente indispensable para garantizar unicidad, y que añadir invariantes redundantes de suma ($\sum = 75$) no aporta poda adicional ni siquiera al modelo binario por limitaciones intrínsecas de la consistencia de cotas lineal.
+\end{enumerate}

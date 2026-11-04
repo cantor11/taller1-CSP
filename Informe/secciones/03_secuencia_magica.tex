@@ -1,54 +1,261 @@
 % !TEX root = ../main.tex
 \section{Problema 3: Secuencia Mágica}
+\label{sec:secuencia_magica}
 
 \subsection{Descripción del Problema y Abstracción CSP}
-% Explicar qué es una secuencia mágica de longitud n:
-% Secuencia x_0, ..., x_{n-1} de enteros tales que x_i in 0..(n-1) y el número i aparece exactamente x_i veces.
+
+Una \emph{secuencia mágica} (también denominada secuencia autodescriptiva) de longitud $n \in \mathbb{Z}^+$ es una tupla ordenada de números enteros $S = (x_0, x_1, \dots, x_{n-1})$ tal que cada componente $x_i$ pertenece al conjunto $\{0, 1, \dots, n-1\}$ y cuantifica exactamente el número de apariciones del entero $i$ dentro de la propia secuencia $S$. El objetivo computacional consiste en enumerar exhaustivamente todas las secuencias mágicas existentes para una longitud arbitraria $n$ dada como entrada.
+
+El paradigma de Programación por Restricciones sobre dominios finitos ($\text{CSP}(\mathcal{FD})$) resulta idóneo para este problema debido a su naturaleza autorreferencial y combinatoria: cada variable desempeña simultáneamente el rol de \emph{valor posicionado} en la secuencia y de \emph{cardinalidad objetivo} para uno de los elementos del universo. Mientras que una búsqueda por fuerza bruta exigiría evaluar $n^n$ asignaciones candidatas ($10^{10}$ en $n=10$ y $10^{200}$ en $n=100$), un motor de propagación sobre dominios finitos explota las relaciones globales de conteo y las leyes algebraicas invariantes de la secuencia para descartar subespacios infactibles antes de instanciar las variables.
+
+Siguiendo el formalismo de Apt adoptado en el curso, para cada instancia parametrizada por $n$ se define el problema de satisfacción de restricciones $\mathcal{P}_{\text{SM}}(n) := \langle \mathcal{C} \ ; \ \mathcal{DE} \rangle$ cuyos elementos constitutivos se precisan a continuación.
 
 \subsubsection{Parámetros y Datos de Entrada}
-% Parámetro n (longitud de la secuencia).
+
+El modelo depende de un único parámetro escalar externo, suministrado mediante archivos de datos independientes:
+\begin{itemize}
+    \item $n \in \mathbb{Z}^+$ ($n \ge 1$): entero positivo que especifica la longitud de la secuencia mágica buscada.
+    \item $I = \{0, 1, \dots, n-1\}$: conjunto finito de índices (y simultáneamente universo de valores admisibles) derivado determinísticamente a partir del parámetro $n$.
+\end{itemize}
+Ningún otro dato es requerido en la entrada, garantizando una separación estricta entre los parámetros de instancia y las incógnitas del modelo.
 
 \subsubsection{Variables de Decisión y Dominios}
-% Variables x_0, ..., x_{n-1} con dominio 0..(n-1).
+
+El conjunto de variables de decisión está conformado por $n$ variables enteras indexadas sobre $I$:
+\[
+    X = \{x_0, x_1, \dots, x_{n-1}\}
+\]
+donde cada variable $x_i$ representa el entero ubicado en la posición $i$-ésima de la secuencia $S$ y, de forma equivalente por definición del problema, el número total de veces que el valor $i$ ocurre en $S$.
+
+La declaración de dominios finitos $\mathcal{DE}$ asigna inicialmente a cada variable el intervalo entero acotado:
+\[
+    \mathcal{DE} = \bigl\{\, x_i \in D(x_i) \ \big|\ i \in I \,\bigr\}, \qquad D(x_i) = \{0, 1, \dots, n-1\} \quad \forall i \in I.
+\]
+Este dominio excluye \emph{a priori} todos los valores semánticamente imposibles sin perder soluciones válidas:
+\begin{enumerate}
+    \item \textbf{Exclusión de enteros negativos ($x_i < 0$):} dado que $x_i$ denota la cardinalidad de un subconjunto de posiciones de $I$, necesariamente $x_i \ge 0$.
+    \item \textbf{Exclusión de valores mayores o iguales a $n$ ($x_i \ge n$):} como la secuencia posee exactamente $n$ posiciones, ningún valor puede aparecer más de $n$ veces ($x_i \le n$). Más aún, el valor extremo $x_i = n$ también es imposible para todo $i \in I$: si existiese algún $i \in I$ con $x_i = n$, las $n$ componentes de la secuencia tendrían que ser iguales a $i$; en particular, se tendría $x_i = i$, lo que implicaría $i = n \notin \{0, \dots, n-1\}$, llegando a una contradicción directa. Por consiguiente, la cota superior estricta $n-1$ es exacta \emph{a priori}.
+\end{enumerate}
 
 \subsubsection{Restricciones Básicas}
-% Formalizar matemáticamente:
-% Conteo: para cada i in 0..(n-1), sum_{j=0}^{n-1} (x_j == i) = x_i (o global_cardinality / count).
+
+Sea $[P] \in \{0, 1\}$ la notación de corchete de Iverson, que evalúa a $1$ si el predicado lógico $P$ es verdadero y a $0$ en caso contrario. El conjunto de restricciones primarias $\mathcal{C}_{\text{base}}$ formaliza de manera incondicional la propiedad autodescriptiva para cada índice $i \in I$:
+\begin{equation}
+    C_i : \quad \sum_{j=0}^{n-1} [x_j = i] = x_i, \qquad \forall i \in I.
+    \label{eq:sm_conteo}
+\end{equation}
+De forma equivalente en términos relacionales sobre el vector $X = (x_0, \dots, x_{n-1})$, cada restricción $C_i$ impone la relación global $\text{count}(X, i, x_i)$, exigiendo que la cardinalidad del conjunto de índices $\{j \in I \mid x_j = i\}$ coincida exactamente con el valor tomado por la variable $x_i$. Nótese que todas las restricciones de $\mathcal{C}_{\text{base}}$ se formulan directamente sobre las variables de decisión y los índices del parámetro $I$, sin condicionar la activación de ninguna restricción al valor particular asumido por una variable.
 
 \subsection{Detalles de Implementación (\texttt{secuencia.mzn})}
 
+El modelo implementado en \texttt{secuencia.mzn} recibe el parámetro $n$, verifica su validez de dominio mediante una aserción de entrada ($n \ge 1$), declara el arreglo de variables de decisión indexado sobre $\{0, \dots, n-1\}$ con dominio finito $\{0, \dots, n-1\}$ e importa la biblioteca estándar de restricciones globales de MiniZinc. Para materializar el sistema de restricciones \eqref{eq:sm_conteo}, se estudiaron y compararon experimentalmente tres codificaciones declarativas equivalentes en el plano semántico pero distintas en su traducción a FlatZinc:
+\begin{enumerate}
+    \item \textbf{Suma explícita de igualdades reificadas:} traduce literalmente la ecuación \eqref{eq:sm_conteo} introduciendo $n^2$ variables booleanas auxiliares $b_{ij} \iff (x_j = i)$ y $n$ ecuaciones lineales $\sum_{j=0}^{n-1} b_{ij} = x_i$. Aunque es conceptualmente transparente, genera una sobrecarga cuadrática de $\Theta(n^2)$ variables y propagadores reificados.
+    \item \textbf{Restricción global de conteo por valor (\texttt{count}):} impone la relación global de conteo para cada $i \in I$ vinculando el arreglo completo $X$, la constante $i$ y la variable contadora $x_i$. En Gecode, esta formulación evita crear variables auxiliares enteras adicionales en FlatZinc (manteniendo exactamente $n$ variables enteras y $n$ propagadores globales de conteo), logrando un equilibrio sobresaliente entre legibilidad estructural y costo de propagación. Esta es la codificación adoptada en \texttt{secuencia.mzn}.
+    \item \textbf{Cardinalidad global cerrada (\texttt{global\_cardinality\_closed}):} agrupa las $n$ condiciones de conteo en un único propagador global sobre el arreglo $X$, la lista cerrada de valores $\{0, \dots, n-1\}$ y el propio arreglo $X$ como vector de frecuencias. Esta variante concentra la consistencia de flujo en un solo propagador global de alto costo unitario pero mínimo número de invocaciones.
+\end{enumerate}
+
 \subsubsection{Restricciones Redundantes y Demostración Teórica}
-% El taller exige evaluar e incluir dos restricciones redundantes:
-% 1. \sum_{i=0}^{n-1} x_i = n
-% 2. \sum_{i=0}^{n-1} (i - 1) x_i = 0  (es decir, (-1)*x_0 + ... + (n-2)*x_{n-1} = 0)
-% Explicar matemáticamente por qué estas restricciones son redundantes y cómo ayudan a podar el espacio de búsqueda.
+
+Siguiendo los lineamientos de la Sección 2.3 del taller, se incorporan al conjunto $\mathcal{C}$ dos restricciones lineales diofánticas redundantes:
+\begin{align}
+    R_1 &: \quad \sum_{i=0}^{n-1} x_i = n, \label{eq:sm_r1} \\
+    R_2 &: \quad \sum_{i=0}^{n-1} (i - 1) x_i = 0 \quad \Longleftrightarrow \quad (-1)x_0 + 0\cdot x_1 + 1\cdot x_2 + \dots + (n-2)x_{n-1} = 0. \label{eq:sm_r2}
+\end{align}
+
+\paragraph{Demostración de redundancia semántica.}
+Sea $X = (x_0, \dots, x_{n-1}) \in \{0, \dots, n-1\}^n$ cualquier asignación que satisface el conjunto de restricciones básicas $\mathcal{C}_{\text{base}}$ dado en \eqref{eq:sm_conteo}. Para cada valor $i \in I$, defínase el conjunto de posiciones donde aparece $i$ como $P_i = \{j \in I \mid x_j = i\}$. Por \eqref{eq:sm_conteo}, se cumple $|P_i| = x_i$ para todo $i \in I$.
+\begin{itemize}
+    \item \textbf{Prueba de $R_1$:} Dado que cada componente $x_j$ toma un único valor dentro de $I = \{0, \dots, n-1\}$, la familia $\{P_i\}_{i=0}^{n-1}$ constituye una partición disjunta del conjunto de índices $I$ ($P_i \cap P_k = \emptyset$ para $i \neq k$ y $\bigcup_{i=0}^{n-1} P_i = I$). Aplicando el principio de adición de cardinalidades sobre conjuntos disjuntos finitos:
+    \[
+        \sum_{i=0}^{n-1} x_i = \sum_{i=0}^{n-1} |P_i| = \left| \bigsqcup_{i=0}^{n-1} P_i \right| = |I| = n.
+    \]
+    Por tanto, toda solución de $\mathcal{C}_{\text{base}}$ satisface necesariamente $R_1$.
+    \item \textbf{Prueba de $R_2$:} Considérese la suma total de las entradas de la secuencia $\sum_{j=0}^{n-1} x_j$ evaluada por doble conteo agrupando los términos según la partición $\{P_i\}_{i=0}^{n-1}$. En cada subconjunto $P_i$, las $|P_i| = x_i$ componentes valen idénticamente $i$, de modo que:
+    \[
+        \sum_{j=0}^{n-1} x_j = \sum_{i=0}^{n-1} \sum_{j \in P_i} x_j = \sum_{i=0}^{n-1} i \cdot |P_i| = \sum_{i=0}^{n-1} i \cdot x_i.
+    \]
+    Reemplazando el índice mudo $j$ por $i$ en el miembro izquierdo y transponiendo términos se obtiene:
+    \[
+        \sum_{i=0}^{n-1} i \cdot x_i - \sum_{i=0}^{n-1} x_i = 0 \quad \Longleftrightarrow \quad \sum_{i=0}^{n-1} (i - 1) x_i = 0.
+    \]
+    En consecuencia, $\mathcal{C}_{\text{base}} \models R_1 \land R_2$; añadir $R_1$ y $R_2$ preserva intacto el conjunto de soluciones $\text{Sol}(\mathcal{P}_{\text{SM}}(n))$.
+\end{itemize}
+
+\paragraph{Mecanismo operativo de poda de dominios.}
+Aunque $R_1$ y $R_2$ son lógicamente redundantes, \emph{no} son operacionalmente redundantes frente a la propagación local. Los propagadores individuales de conteo $C_i$ operan de forma miope: mientras las variables $x_j$ permanecen sin instanciar con dominio $\{0, \dots, n-1\}$, cada $C_i$ admite cualquier frecuencia $x_i \in \{0, \dots, n-1\}$ porque todas las posiciones contienen aún a $i$ en su dominio. En contraste, el propagador lineal de consistencia de cotas sobre $R_2$ reescribe la identidad como:
+\begin{equation}
+    x_0 = \sum_{i=2}^{n-1} (i - 1) x_i.
+    \label{eq:sm_cota_r2}
+\end{equation}
+Como $(i-1) \ge 1$ y $x_i \ge 0$ para todo $i \ge 2$, y sabiendo que $\max D(x_0) = n - 1$, en el propio \textbf{nodo raíz} (antes de cualquier ramificación) la consistencia de cotas fuerza para cada $i \ge 2$:
+\[
+    (i - 1) x_i \le x_0 \le n - 1 \quad \Longrightarrow \quad x_i \le \left\lfloor \frac{n - 1}{i - 1} \right\rfloor.
+\]
+Esta poda inicial colapsa dramáticamente el espacio cartesiano de búsqueda: para toda la segunda mitad de la secuencia ($i > \frac{n+1}{2}$), el cociente cumple $\lfloor \frac{n-1}{i-1} \rfloor = 1$, reduciendo instantáneamente el dominio de aproximadamente $n/2$ variables de tamaño $n$ al dominio binario $\{0, 1\}$. Adicionalmente, al sumar $R_1$ y $R_2$ se obtiene $\sum_{i=0}^{n-1} i x_i = n$, acoplando globalmente la suma de frecuencias con el peso posicional. Por ejemplo, en $n=3$, $R_2$ fija $x_0 = x_2 \le 2$ y $R_1$ exige $2x_2 + x_1 = 3$; la paridad fuerza $x_1 \in \{1, 3\} \cap \{0,1,2\} = \{1\}$, de donde $x_0 = x_2 = 1$, contradiciendo de inmediato $C_1$ (pues el valor $1$ aparecería tres veces pero $x_1 = 1$). Gracias a esta sinergia, el modelo con $R_1 + R_2$ refuta $n=3$ en la raíz con \textbf{$0$ nodos de decisión}, mientras que usar únicamente $R_2$ requiere $3$ nodos y el modelo sin redundantes explora $5$ nodos.
 
 \subsubsection{Rompimiento de Simetrías}
-% Analizar si existen simetrías en las soluciones del problema y si es posible imponer restricciones para romperlas.
+
+Un análisis formal del grupo de automorfismos del problema demuestra que \textbf{no existen simetrías de variables ni de valores} en $\mathcal{P}_{\text{SM}}(n)$, y que imponer restricciones canónicas de rompimiento de simetrías sería semánticamente incorrecto:
+\begin{enumerate}
+    \item \textbf{Ausencia de simetrías de índice (variables):} Sea $\pi \in S_n \setminus \{\text{id}\}$ una permutación no trivial de los índices $I$. Al permutar las posiciones de una secuencia $X$ para formar $X^\pi$ con $X^\pi_i = x_{\pi(i)}$, el multiconjunto de valores presentes en la secuencia permanece invariante: el número de apariciones de cada entero $i$ en $X^\pi$ sigue siendo $x_i$, pero la componente ubicada en la posición $i$ pasa a ser $x_{\pi(i)}$. Para que $X^\pi$ siga siendo mágica debería cumplirse $x_{\pi(i)} = x_i$ para todo $i \in I$. En cualquier secuencia mágica válida, las componentes no son constantes (por ejemplo, en $n=4$, al permutar los dos primeros índices de $(1, 2, 1, 0)$ se obtiene $(2, 1, 1, 0)$, la cual viola $C_0$ porque el $0$ aparece una sola vez mientras $x_0 = 2$).
+    \item \textbf{Ausencia de simetrías de valor:} Una biyección no trivial $\sigma \in S_n \setminus \{\text{id}\}$ aplicada a los valores altera la suma $\sum_{i=0}^{n-1} \sigma(x_i) \neq n$ y rompe el acoplamiento autorreferencial entre el valor $\sigma(x_i)$ y la frecuencia del índice fijo $i$.
+    \item \textbf{Invalidez de restricciones de ordenamiento:} Imponer restricciones habituales de rompimiento de simetrías tales como orden creciente o decreciente ($x_0 \le x_1 \le \dots \le x_{n-1}$ o $x_0 \ge x_1 \ge \dots \ge x_{n-1}$) eliminaría soluciones legítimas (y de hecho volvería insatisfacible el problema para $n \ge 5$, donde la única solución verifica $x_0 = n-4 > x_1 = 2 > x_2 = 1 > x_3 = 0 < x_{n-4} = 1 > x_{n-1} = 0$). Asimismo, en $n=4$ las dos soluciones $(1, 2, 1, 0)$ y $(2, 0, 2, 0)$ poseen multiconjuntos de valores distintos ($\{0, 1, 1, 2\}$ frente a $\{0, 0, 2, 2\}$), por lo que son soluciones estructuralmente independientes que deben ser enumeradas en su totalidad.
+\end{enumerate}
 
 \subsection{Estrategias de Búsqueda y Distribución}
-% Anotaciones de búsqueda en MiniZinc para enumerar todas las secuencias mágicas.
-% Comparar el comportamiento del solver con y sin las restricciones redundantes.
+
+En MiniZinc, una estrategia de distribución completa para dominios enteros divide recursivamente cada nodo abierto mediante ramificación binaria estándar de la forma $x_i = v$ en la rama izquierda frente a $x_i \neq v$ en la rama derecha (o $x_i \le m$ frente a $x_i > m$ bajo bisección de dominio), ejecutando propagación hasta punto fijo tras cada decisión. Para determinar la estrategia óptima de enumeración en \texttt{secuencia.mzn}, se evaluaron nueve configuraciones combinando cinco heurísticas de selección de variable (\texttt{input\_order}, orden inverso $x_{n-1}\dots x_0$, \texttt{first\_fail}, \texttt{smallest} y \texttt{dom\_w\_deg}, además de la estrategia por defecto de Gecode) con tres heurísticas de selección de valor (\texttt{indomain\_min}, \texttt{indomain\_max} e \texttt{indomain\_split}).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.98\textwidth]{secuencia_arbol_n4.png}
+    \caption{Árboles binarios de búsqueda completos trazados en Gecode para $n=4$ bajo \texttt{first\_fail} + \texttt{indomain\_min}: (a) modelo base sin restricciones redundantes ($11$ nodos, $4$ fallos, profundidad $4$); (b) modelo con $R_1 + R_2$ ($5$ nodos, $1$ fallo, profundidad $2$).}
+    \label{fig:secuencia_arbol_n4}
+\end{figure}
+
+La Figura~\ref{fig:secuencia_arbol_n4} ilustra el efecto estructural de las restricciones redundantes sobre el árbol de búsqueda en $n=4$:
+\begin{itemize}
+    \item \textbf{Sin restricciones redundantes (Figura~\ref{fig:secuencia_arbol_n4}a):} En la raíz todos los dominios son uniformes $D(x_i) = \{0, 1, 2, 3\}$ de tamaño $4$. Por regla de desempate posicional, \texttt{first\_fail} degenera en \texttt{input\_order} y selecciona $x_0$. La rama $x_0 = 0$ falla por contradicción en $C_0$, obligando a desplegar una cadena secuencial de decisiones $x_0 = 1$, $x_1 = 1$ (fallo), $x_1 = 2$ (Solución 1: $[1,2,1,0]$), $x_1 = 3$ (fallo), $x_0 = 2$ (Solución 2: $[2,0,2,0]$) y $x_0 = 3$ (fallo), acumulando $11$ nodos, $4$ hojas fallidas y $50$ propagaciones.
+    \item \textbf{Con restricciones redundantes $R_1 + R_2$ (Figura~\ref{fig:secuencia_arbol_n4}b):} En la raíz, la desigualdad \eqref{eq:sm_cota_r2} deduce $2x_3 + x_2 = x_0 \le 3$, podando los dominios iniciales a $D(x_3) = \{0, 1\}$ (tamaño $2$) y $D(x_2) = \{0, 1, 2, 3\} \cap [0,3]$. Ahora \texttt{first\_fail} detecta inmediatamente la variable más restringida $x_3$: en la rama derecha ($x_3 \neq 0 \Rightarrow x_3 = 1$), $R_2$ fuerza $x_0 \ge 2$ y $R_1 + C_3$ colapsan en fallo inmediato sin subramificaciones; en la rama izquierda ($x_3 = 0$), la propagación conjunta reduce $x_0, x_2 \in \{1, 2\}$, bastando una única decisión adicional ($x_0 = 1$ frente a $x_0 \neq 1$) para obtener directamente ambas soluciones válidas en solo $5$ nodos, $1$ fallo y $37$ propagaciones. En la instancia insatisfacible $n=6$, el mismo fenómeno reduce el árbol de $29$ nodos y $15$ fallos a apenas $7$ nodos y $4$ fallos.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.98\textwidth]{secuencia_estrategias.png}
+    \caption{Interacción entre modelado y heurísticas de distribución en Secuencia Mágica: (a) inversión del ranking heurístico en $n=10$ al incorporar $R_1 + R_2$; (b) escalabilidad lineal del número de nodos explorados en función de $n$ para las estrategias evaluadas.}
+    \label{fig:secuencia_estrategias}
+\end{figure}
+
+Un hallazgo teórico-experimental fundamental, evidenciado en la Figura~\ref{fig:secuencia_estrategias}, es la \textbf{inversión del ranking entre heurísticas} producida por las restricciones redundantes:
+\begin{itemize}
+    \item \textbf{Sin redundantes ($M_0$):} Al comenzar todas las variables con $|D(x_i)| = n$, \texttt{input\_order} + \texttt{indomain\_min} supera ampliamente a \texttt{first\_fail} + \texttt{indomain\_min} ($55$ frente a $117$ nodos en $n=10$; $775$ frente a $10\,557$ nodos en $n=100$), porque instanciar secuencialmente $x_0$ fija el número de ceros de la secuencia, mientras que \texttt{first\_fail} salta dinámicamente hacia variables intermedias cuyos conteos aún no están acotados globalmente.
+    \item \textbf{Con redundantes ($M_3 = \mathcal{C}_{\text{base}} \cup \{R_1, R_2\}$):} La poda en la raíz inducida por $R_2$ rompe la uniformidad inicial y asigna dominio binario $\{0, 1\}$ a todas las variables con $i > \frac{n+1}{2}$. Bajo esta geometría de dominios, \textbf{\texttt{first\_fail} + \texttt{indomain\_min}} (adoptada como estrategia oficial en \texttt{secuencia.mzn}) selecciona primero dichas variables de cola y prueba $x_i = 0$ (valor que coincide con la solución única para todo $i \neq n-4$ cuando $n \ge 7$) y refuta en un solo paso la alternativa $x_i = 1$ gracias a $R_2$. Esto produce una ley exacta óptima de \textbf{$n + 1$ nodos explorados y $\lfloor n/2 \rfloor$ fallos} para todo $n \ge 7$, superando a \texttt{input\_order} + \texttt{indomain\_min} ($2n - 1$ nodos), a \texttt{smallest} + \texttt{indomain\_min} ($3n - 9$ nodos, penalizada por priorizar reiteradamente variables con mínimo $0$ pero gran tamaño de dominio como $x_0$) e incluso superando a la búsqueda por defecto de Gecode y al orden inverso en $n=6$ ($7$ frente a $9$ nodos).
+\end{itemize}
 
 \subsection{Pruebas y Análisis Experimental}
-% Pruebas variando la longitud n (ej. n = 4, 5, 10, 20, 50, etc.).
-% Evaluar la reducción del árbol de búsqueda (nodos, fallos, tiempo).
+
+Se diseñó una batería sistemática de $12$ archivos de datos (\texttt{datos/secuencia\_n*.dzn}) que cubren exhaustivamente todos los regímenes matemáticos del problema:
+\begin{enumerate}
+    \item \textbf{Casos borde pequeños insatisfacibles ($n \in \{1, 2, 3\}$):} verifican la ausencia de falsos positivos y la detección temprana de inconsistencia en la raíz ($0$ soluciones).
+    \item \textbf{Caso multimodal ($n = 4$):} única longitud entera que admite exactamente $2$ secuencias mágicas distintas: $(1, 2, 1, 0)$ y $(2, 0, 2, 0)$.
+    \item \textbf{Caso esporádico ($n = 5$) e insatisfacibilidad no trivial ($n = 6$):} validan la solución única $(2, 1, 2, 0, 0)$ en $n=5$ y la refutación completa ($0$ soluciones) en el último entero positivo carente de secuencia mágica ($n=6$).
+    \item \textbf{Familia paramétrica general y pruebas de estrés ($n \in \{7, 10, 15, 20, 50, 100\}$):} comprueban la convergencia hacia la ley estructural única para todo $n \ge 7$, dada por $x_0 = n - 4$, $x_1 = 2$, $x_2 = 1$, $x_{n-4} = 1$ y $x_k = 0$ para todo $k \notin \{0, 1, 2, n-4\}$, así como la escalabilidad asintótica del modelo.
+\end{enumerate}
+
+Todas las instancias fueron ejecutadas con enumeración completa (\texttt{-a}) tanto en \textbf{Gecode 6.4.0} (propagación por dominios finitos) como en \textbf{Chuffed 0.14.0} (generación perezosa de cláusulas), verificando coincidencia exacta en el conjunto de soluciones reportadas para los $12$ casos. En $n=100$, Gecode resuelve el modelo completo con $100$ variables enteras, $101$ nodos, $50$ fallos y $14\,711$ propagaciones ($1.43\text{ ms}$ de tiempo de resolución), mientras que Chuffed introduce $30\,100$ variables booleanas internas para codificar los literales de dominio, requiriendo $166$ nodos, $55$ fallos ($55$ \emph{nogoods}) y $9.0\text{ ms}$.
 
 \begin{table}[htbp]
     \centering
-    \begin{tabular}{cccccc}
+    \small
+    \setlength{\tabcolsep}{4.5pt}
+    \begin{tabular}{llrrrrrr}
         \toprule
-        $n$ & Modelo & Tiempo (s) & Nodos explorados & Nodos fallidos & Soluciones \\
+        $n$ & Variante del modelo & Sol. & Nodos & Fallos & Prof. & Propagaciones & Tiempo (ms) \\
         \midrule
-        $10$ & Sin redundantes & -- & -- & -- & -- \\
-        $10$ & Con redundantes & -- & -- & -- & -- \\
-        $20$ & Sin redundantes & -- & -- & -- & -- \\
-        $20$ & Con redundantes & -- & -- & -- & -- \\
+        $3$   & $M_0$: Sin redundantes          & $0$ & $5$       & $3$      & $1$  & $18$          & $0.06$ \\
+        $3$   & $M_1$: Solo $R_1$               & $0$ & $5$       & $3$      & $1$  & $21$          & $0.06$ \\
+        $3$   & $M_2$: Solo $R_2$               & $0$ & $3$       & $2$      & $1$  & $10$          & $0.05$ \\
+        $3$   & $M_3$: Ambas ($R_1 + R_2$)      & $0$ & $0$       & $1$      & $0$  & $2$           & $0.04$ \\
+        \midrule
+        $4$   & $M_0$: Sin redundantes          & $2$ & $11$      & $4$      & $3$  & $50$          & $0.08$ \\
+        $4$   & $M_1$: Solo $R_1$               & $2$ & $11$      & $4$      & $3$  & $81$          & $0.09$ \\
+        $4$   & $M_2$: Solo $R_2$               & $2$ & $5$       & $1$      & $2$  & $32$          & $0.09$ \\
+        $4$   & $M_3$: Ambas ($R_1 + R_2$)      & $2$ & $5$       & $1$      & $2$  & $37$          & $0.09$ \\
+        \midrule
+        $6$   & $M_0$: Sin redundantes          & $0$ & $29$      & $15$     & $4$  & $391$         & $0.09$ \\
+        $6$   & $M_1$: Solo $R_1$               & $0$ & $15$      & $8$      & $3$  & $154$         & $0.09$ \\
+        $6$   & $M_2$: Solo $R_2$               & $0$ & $7$       & $4$      & $3$  & $81$          & $0.07$ \\
+        $6$   & $M_3$: Ambas ($R_1 + R_2$)      & $0$ & $7$       & $4$      & $3$  & $97$          & $0.08$ \\
+        \midrule
+        $10$  & $M_0$: Sin redundantes          & $1$ & $117$     & $58$     & $6$  & $3\,739$      & $0.35$ \\
+        $10$  & $M_1$: Solo $R_1$               & $1$ & $33$      & $16$     & $5$  & $425$         & $0.13$ \\
+        $10$  & $M_2$: Solo $R_2$               & $1$ & $11$      & $5$      & $5$  & $199$         & $0.11$ \\
+        $10$  & $M_3$: Ambas ($R_1 + R_2$)      & $1$ & $11$      & $5$      & $5$  & $231$         & $0.11$ \\
+        \midrule
+        $20$  & $M_0$: Sin redundantes          & $1$ & $477$     & $238$    & $11$ & $63\,474$     & $3.05$ \\
+        $20$  & $M_1$: Solo $R_1$               & $1$ & $73$      & $36$     & $10$ & $1\,489$      & $0.39$ \\
+        $20$  & $M_2$: Solo $R_2$               & $1$ & $21$      & $10$     & $10$ & $700$         & $0.18$ \\
+        $20$  & $M_3$: Ambas ($R_1 + R_2$)      & $1$ & $21$      & $10$     & $10$ & $799$         & $0.28$ \\
+        \midrule
+        $50$  & $M_0$: Sin redundantes          & $1$ & $2\,757$  & $1\,378$ & $26$ & $2\,482\,962$ & $149.57$ \\
+        $50$  & $M_1$: Solo $R_1$               & $1$ & $193$     & $96$     & $25$ & $5\,751$      & $0.95$ \\
+        $50$  & $M_3$: Ambas ($R_1 + R_2$)      & $1$ & $51$      & $25$     & $25$ & $3\,903$      & $0.55$ \\
+        \midrule
+        $100$ & $M_0$: Sin redundantes          & $1$ & $10\,557$ & $5\,278$ & $51$ & $39\,520\,167$& $4\,007.51$ \\
+        $100$ & $M_1$: Solo $R_1$               & $1$ & $393$     & $196$    & $50$ & $21\,951$     & $3.12$ \\
+        $100$ & $M_3$: Ambas ($R_1 + R_2$)      & $1$ & $101$     & $50$     & $50$ & $14\,711$     & $1.43$ \\
         \bottomrule
     \end{tabular}
-    \caption{Impacto de las restricciones redundantes en la Secuencia Mágica.}
-    \label{tab:secuencia_resultados}
+    \caption{Estudio de ablación de las restricciones redundantes $R_1$ y $R_2$ en Gecode 6.4.0 bajo \texttt{first\_fail} + \texttt{indomain\_min} (enumeración completa \texttt{-a}).}
+    \label{tab:secuencia_ablacion}
 \end{table}
 
+La Tabla~\ref{tab:secuencia_ablacion} y la Figura~\ref{fig:secuencia_poda} cuantifican el impacto individual y conjunto de $R_1$ y $R_2$. Sin restricciones redundantes ($M_0$), los nodos crecen cuadráticamente ($\Theta(n^2)$) y las propagaciones escalan como $\Theta(n^4)$, alcanzando $39.52$ millones de propagaciones y $4.01\text{ s}$ en $n=100$. Al añadir únicamente $R_1$ ($M_1$), el árbol desciende a un régimen lineal de $4n - 7$ nodos ($393$ en $n=100$). Notablemente, este conteo de nodos de $M_1$ coincide de manera exacta con el obtenido al reemplazar los $n$ predicados \texttt{count} por \texttt{global\_cardinality\_closed} sin restricciones redundantes ($11, 15, 33, 73, 193, 393$ nodos para $n = 4, 6, 10, 20, 50, 100$), debido a que una restricción de cardinalidad cerrada lleva implícita la invariante $\sum x_i = n$, pero sigue siendo ciega a los pesos posicionales $(i-1)x_i$ de $R_2$. Al incorporar $R_2$ y combinarla con $R_1$ en $M_3$, los nodos se reducen en un \textbf{$99.04$\%} ($10\,557 \to 101$), las propagaciones en un \textbf{$99.96$\%} ($39\,520\,167 \to 14\,711$) y el tiempo de búsqueda se acelera en un factor de \textbf{$2\,802\times$} ($4\,007.51\text{ ms} \to 1.43\text{ ms}$) en $n=100$.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.98\textwidth]{secuencia_comparacion_poda.png}
+    \caption{Curvas de escalabilidad en escala logarítmica comparando las cuatro variantes de ablación ($M_0, M_1, M_2, M_3$) desde $n=3$ hasta $n=100$: (a) nodos explorados; (b) propagaciones ejecutadas por el motor.}
+    \label{fig:secuencia_poda}
+\end{figure}
+
+Por su parte, la Tabla~\ref{tab:secuencia_formulaciones} contrasta las tres codificaciones de la restricción primaria de conteo manteniendo activas $R_1 + R_2$. Aunque las tres exploran exactamente el mismo árbol de búsqueda ($5, 11, 21, 51$ nodos), la suma explícita reificada multiplica por $101\times$ el número de variables en $n=50$ ($5\,050$ frente a $50$) y por $7.9\times$ las propagaciones respecto a \texttt{count}. Entre \texttt{count} y \texttt{global\_cardinality\_closed}, la primera logra el menor tiempo de resolución práctico hasta $n=50$ ($0.50\text{ ms}$ frente a $0.65\text{ ms}$) gracias a la ligereza aritmética de cada propagador individual, mientras que \texttt{global\_cardinality\_closed} minimiza el número absoluto de invocaciones del motor ($509$ propagaciones en $n=50$). Finalmente, la Tabla~\ref{tab:secuencia_estrategias_tab} sintetiza el desempeño comparativo de las estrategias de distribución evaluadas.
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \setlength{\tabcolsep}{4.2pt}
+    \begin{tabular}{llrrrrr}
+        \toprule
+        $n$ & Codificación de $\mathcal{C}_{\text{base}}$ ($R_1 + R_2$ activas) & Vars. & Prop. & Nodos & Propagaciones & Tiempo (ms) \\
+        \midrule
+        $10$ & Suma reificada explícita                    & $210$    & $106$ & $11$ & $1\,150$  & $0.17$ \\
+        $10$ & \texttt{count} por índice (modelo adoptado) & $10$     & $12$  & $11$ & $231$     & $0.11$ \\
+        $10$ & \texttt{global\_cardinality\_closed}        & $10$     & $4$   & $11$ & $98$      & $0.13$ \\
+        \midrule
+        $20$ & Suma reificada explícita                    & $820$    & $238$ & $21$ & $4\,498$  & $0.37$ \\
+        $20$ & \texttt{count} por índice (modelo adoptado) & $20$     & $22$  & $21$ & $799$     & $0.21$ \\
+        $20$ & \texttt{global\_cardinality\_closed}        & $20$     & $4$   & $21$ & $209$     & $0.22$ \\
+        \midrule
+        $50$ & Suma reificada explícita                    & $5\,050$ & $684$ & $51$ & $30\,943$ & $1.74$ \\
+        $50$ & \texttt{count} por índice (modelo adoptado) & $50$     & $52$  & $51$ & $3\,903$  & $0.50$ \\
+        $50$ & \texttt{global\_cardinality\_closed}        & $50$     & $4$   & $51$ & $509$     & $0.65$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparación estructural y operativa en Gecode de tres implementaciones equivalentes de la restricción básica de conteo (con $R_1 + R_2$ activas).}
+    \label{tab:secuencia_formulaciones}
+\end{table}
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \setlength{\tabcolsep}{4.0pt}
+    \begin{tabular}{lrrrrrrr}
+        \toprule
+        Estrategia de búsqueda & \multicolumn{2}{c}{Sin redundantes ($n=10$)} & \multicolumn{5}{c}{Con $R_1 + R_2$ (Nodos explorados)} \\
+        \cmidrule(lr){2-3} \cmidrule(lr){4-8}
+        (Variable + Valor) & Nodos & Fallos & $n=4$ & $n=6$ & $n=10$ & $n=50$ & $n=100$ \\
+        \midrule
+        \texttt{first\_fail} + \texttt{indomain\_min}   & $117$ & $58$  & $5$ & $7$  & $11$ & $51$  & $101$ \\
+        \texttt{first\_fail} + \texttt{indomain\_split} & $75$  & $37$  & $5$ & $7$  & $11$ & $51$  & $101$ \\
+        \texttt{dom\_w\_deg} + \texttt{indomain\_min}   & $109$ & $54$  & $5$ & $7$  & $11$ & $51$  & $101$ \\
+        \texttt{input\_order} + \texttt{indomain\_max}  & $89$  & $44$  & $5$ & $7$  & $11$ & $51$  & $101$ \\
+        Por defecto (Gecode)                            & $107$ & $53$  & $5$ & $9$  & $11$ & $51$  & $101$ \\
+        Orden inverso + \texttt{indomain\_min}          & $277$ & $138$ & $5$ & $9$  & $11$ & $51$  & $101$ \\
+        \texttt{input\_order} + \texttt{indomain\_min}  & $55$  & $27$  & $7$ & $11$ & $19$ & $99$  & $199$ \\
+        \texttt{smallest} + \texttt{indomain\_min}      & $105$ & $52$  & $7$ & $11$ & $21$ & $141$ & $291$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparación de estrategias de distribución sin restricciones redundantes ($n=10$) y con restricciones redundantes ($n \in \{4, 6, 10, 50, 100\}$) en Gecode 6.4.0.}
+    \label{tab:secuencia_estrategias_tab}
+\end{table}
+
+\clearpage
 \subsection{Conclusiones del Ejercicio}
-% Justificación de cómo las restricciones redundantes mejoran la propagación y reducen el espacio de búsqueda.
+
+\begin{enumerate}
+    \item \textbf{Primacía de la proyección algebraica global ($R_1 + R_2$) sobre la propagación local:} Las restricciones básicas de conteo \texttt{count} son incapaces por sí solas de acotar globalmente las sumas ponderadas de frecuencias cuando las variables están libres, originando un crecimiento superlineal ($\Theta(n^2)$ nodos y $\Theta(n^4)$ propagaciones). La inclusión conjunta de $R_1$ y $R_2$ proyecta la estructura global del problema sobre dos hiperplanos lineales diofánticos que podan la mitad superior de los dominios a $\{0, 1\}$ en la raíz, reduciendo la complejidad empírica a una cota exacta de $n + 1$ nodos y logrando una aceleración superior a tres órdenes de magnitud ($2\,802\times$) en $n=100$.
+    \item \textbf{Acoplamiento entre restricciones redundantes y heurística de búsqueda:} Los experimentos demuestran que una heurística de distribución no puede seleccionarse de forma aislada respecto al modelo: \texttt{first\_fail} + \texttt{indomain\_min} pasa de ser subóptima en el modelo base ($117$ nodos en $n=10$ debido a dominios iniciales homogéneos) a ser estrictamente óptima en todos los valores de $n$ evaluados tras incorporar $R_2$, gracias a la asimetría de tamaños de dominio creada por la cota $\lfloor \frac{n-1}{i-1} \rfloor$.
+    \item \textbf{Superioridad de restricciones globales frente a reificación explícita y ausencia de simetrías:} Codificar el conteo mediante el predicado global \texttt{count} elimina las $n^2$ variables booleanas auxiliares de la formulación reificada, disminuyendo en casi un orden de magnitud las propagaciones y el tiempo de ejecución. Asimismo, se demostró rigurosamente que la naturaleza autorreferencial de $x_i$ impide cualquier simetría de índices o valores, preservando la completitud en la enumeración de todas las secuencias mágicas.
+\end{enumerate}
