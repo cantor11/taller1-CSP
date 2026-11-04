@@ -1,6 +1,6 @@
 # Guía de Instalación y Uso de LaTeX — Taller 1 (CSP)
 
-Esta guía explica los requisitos, la instalación y el flujo de trabajo para colaborar en el informe del **Taller 1: Programación por Restricciones (CSP)** utilizando **LaTeX Workshop** en **Antigravity IDE** o **VS Code**.
+Esta guía explica los requisitos, la instalación y el flujo de trabajo para colaborar en el informe del **Taller 1: Programación por Restricciones (CSP)** utilizando **LaTeX Workshop** en **Visual Studio Code (VS Code)**.
 
 ---
 
@@ -8,7 +8,7 @@ Esta guía explica los requisitos, la instalación y el flujo de trabajo para co
 
 Para trabajar en el informe localmente se requieren tres componentes:
 
-1. **Editor de Código:** [Antigravity IDE](https://antigravity.google) o [Visual Studio Code](https://code.visualstudio.com/).
+1. **Editor de Código:** [Visual Studio Code](https://code.visualstudio.com/).
 2. **Extensión:** **LaTeX Workshop** (desarrollada por *James-Yu*), disponible en el Marketplace de extensiones (`Ctrl + Shift + X`).
 3. **Distribución de LaTeX (Compilador):**
    - **Windows:** [MiKTeX](https://miktex.org/download) *(Recomendado)*.
@@ -26,18 +26,26 @@ Si aún no tienes MiKTeX instalado:
    - Abre **MiKTeX Console** desde el menú de inicio de Windows.
    - Ve a **Settings** y asegúrate de que *You can configure whether missing packages are installed on-the-fly* esté en **"Always"**.
    - Haz clic en **Updates** -> **Check for updates** para tener los paquetes actualizados.
-4. **Importante:** Cierra por completo y vuelve a abrir tu editor (Antigravity IDE o VS Code) para que reconozca las variables de entorno del sistema (`PATH`).
+4. **Importante:** Cierra por completo y vuelve a abrir tu editor (VS Code) para que reconozca las variables de entorno del sistema (`PATH`).
 
 ---
 
 ## 3. Estructura del Proyecto
 
-El informe está organizado de forma modular para que varios integrantes puedan trabajar al mismo tiempo sin generar conflictos de Git:
+El proyecto y el informe están organizados de forma modular para que varios integrantes puedan trabajar al mismo tiempo sin generar conflictos de Git:
 
 ```text
 taller1-CSP/
 ├── .vscode/
 │   └── settings.json          # Configuración de compilación con pdflatex y rutas
+├── problemas/                 # Modelos MiniZinc (.mzn) por numeral del taller
+│   ├── 2.3/
+│   │   └── secuencia.mzn
+│   └── 2.4/
+│       └── acertijo.mzn
+├── datos/                     # Instancias de prueba (.dzn) por numeral del taller
+│   └── 2.3/
+│       └── secuencia_n*.dzn
 ├── Informe/
 │   ├── main.tex               # Archivo raíz principal (portada, índice e imports)
 │   ├── main.pdf               # PDF compilado resultante

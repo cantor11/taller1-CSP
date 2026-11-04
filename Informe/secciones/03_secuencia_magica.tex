@@ -48,7 +48,7 @@ De forma equivalente en términos relacionales sobre el vector $X = (x_0, \dots,
 
 \subsection{Detalles de Implementación (\texttt{secuencia.mzn})}
 
-El modelo implementado en \texttt{secuencia.mzn} recibe el parámetro $n$, verifica su validez de dominio mediante una aserción de entrada ($n \ge 1$), declara el arreglo de variables de decisión indexado sobre $\{0, \dots, n-1\}$ con dominio finito $\{0, \dots, n-1\}$ e importa la biblioteca estándar de restricciones globales de MiniZinc. Para materializar el sistema de restricciones \eqref{eq:sm_conteo}, se estudiaron y compararon experimentalmente tres codificaciones declarativas equivalentes en el plano semántico pero distintas en su traducción a FlatZinc:
+El modelo implementado en la ruta \texttt{problemas/2.3/secuencia.mzn} recibe el parámetro $n$, verifica su validez de dominio mediante una aserción de entrada ($n \ge 1$), declara el arreglo de variables de decisión indexado sobre $\{0, \dots, n-1\}$ con dominio finito $\{0, \dots, n-1\}$ e importa la biblioteca estándar de restricciones globales de MiniZinc. Para materializar el sistema de restricciones \eqref{eq:sm_conteo}, se estudiaron y compararon experimentalmente tres codificaciones declarativas equivalentes en el plano semántico pero distintas en su traducción a FlatZinc:
 \begin{enumerate}
     \item \textbf{Suma explícita de igualdades reificadas:} traduce literalmente la ecuación \eqref{eq:sm_conteo} introduciendo $n^2$ variables booleanas auxiliares $b_{ij} \iff (x_j = i)$ y $n$ ecuaciones lineales $\sum_{j=0}^{n-1} b_{ij} = x_i$. Aunque es conceptualmente transparente, genera una sobrecarga cuadrática de $\Theta(n^2)$ variables y propagadores reificados.
     \item \textbf{Restricción global de conteo por valor (\texttt{count}):} impone la relación global de conteo para cada $i \in I$ vinculando el arreglo completo $X$, la constante $i$ y la variable contadora $x_i$. En Gecode, esta formulación evita crear variables auxiliares enteras adicionales en FlatZinc (manteniendo exactamente $n$ variables enteras y $n$ propagadores globales de conteo), logrando un equilibrio sobresaliente entre legibilidad estructural y costo de propagación. Esta es la codificación adoptada en \texttt{secuencia.mzn}.
@@ -135,7 +135,7 @@ Un hallazgo teórico-experimental fundamental, evidenciado en la Figura~\ref{fig
 
 \subsection{Pruebas y Análisis Experimental}
 
-Se diseñó una batería sistemática de $12$ archivos de datos (\texttt{datos/secuencia\_n*.dzn}) que cubren exhaustivamente todos los regímenes matemáticos del problema:
+Se diseñó una batería sistemática de $12$ archivos de datos (\texttt{datos/2.3/secuencia\_n*.dzn}) que cubren exhaustivamente todos los regímenes matemáticos del problema:
 \begin{enumerate}
     \item \textbf{Casos borde pequeños insatisfacibles ($n \in \{1, 2, 3\}$):} verifican la ausencia de falsos positivos y la detección temprana de inconsistencia en la raíz ($0$ soluciones).
     \item \textbf{Caso multimodal ($n = 4$):} única longitud entera que admite exactamente $2$ secuencias mágicas distintas: $(1, 2, 1, 0)$ y $(2, 0, 2, 0)$.
