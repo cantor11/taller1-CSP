@@ -1,0 +1,4 @@
+personas = ["jose", "julian", "diana", "juan", "david", "claudia", "edgar", "mario"];
+next = [|5, 8|]; %David con Mario
+separate = [|6, 7|]; %Claudia separada de Edgar
+distance = [|6, 5, 2|]; %Claudia a 2 personas de David

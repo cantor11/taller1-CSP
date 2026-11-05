@@ -4,13 +4,46 @@
 \subsection{Descripción del Problema y Abstracción CSP}
 % Breve descripción del problema del Sudoku de 9x9 con subcuadrículas de 3x3.
 % Justificación de la adecuación del modelo CSP al problema planteado.
+El sudoku es un rompecabezas matemático de colocación de números, con orígenes en el juego suizo de "Cuadros Latinos" pero creado en su versión moderno por Howard Garns, un inventor de rompecabezas independiente de Connersville, Indiana. El juego apareció por primera vez en Japón en 1984, donde recibió el nombre de "Sudoku", que es la abreviatura de una expresión más larga en japonés: "Sūji wa dokushin ni kagiru", que significa "los dígitos están limitados a una ocurrencia". \cite{Sudokucom2018}
+
+Una instancia del rompecabezas consiste de una grilla de dimensión $9 \times 9$ subdividida a su vez en 9 recuadros de $3 \times 3$. Inicialmente algunas casillas se encuentran ocupadas ya con dígitos del 1 al 9. El objetivo del rompecabezas es terminar de llenar el resto de las casillas con dígitos igualmente del 1 a 9, de forma que ningún dígito se repita por fila, columna o subrecuadro.\\
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.4\textwidth]{Imagenes/sudoku.png}
+    \caption{Ejemplo de instancia de rompecabezas Sudoku.}
+    \label{img_sudoku}
+\end{figure}
+
+Por ello el problema del Sudoku se modeló por medio de un arreglo de dos dimensiones de variables enteras, con restricciones de igualdad sobre un arreglo de entrada que representa el estado inicial del problema. Adicionalmente se imponen las restricciones de no repetición sobre las filas y columnas del arreglo. Modelando el comportamiento de las reglas del rompecabezas.
+
 
 \subsubsection{Parámetros y Datos de Entrada}
 % Definir matrices o arreglos con las pistas iniciales (números prefijados).
-
+A fin de que el modelo sea aplicable a la totalidad de la familia de problemas de \textit{Sudoku}, se implementó el parámetro \verb|puzzle|. El parámetro recibe un arreglo dos dimensional de dimensión $9\times9$ con valores de $0..9$ al interior del mismo:
+\begin{flalign*}
+    A = (a_{i,j})_{1\leq i,j \leq9} \hspace{0.5em} con \hspace{0.5em} a_{i,j} \in \{0,1\cdots9\} 
+\end{flalign*}
+Codificada en Minizinc como:
+\begin{verbatim}
+    array[1..9, 1..9] of 0..9: puzzle;
+\end{verbatim}
+De esta manera se obtienen las 81 casillas de una instancia original del puzzle, dónde los valores al interior de la celda distintos a 0 representan un valor inicial de una instancia de un Sudoku. De esta forma se obliga al modelo por medio de restricción a mantener fijos estos valores.\\
+Por consiguiente, las celdas iguales a 0 representan casillas vacías con posibilidad de ser llenadas con valores entre $1..9$ como parte de la búsqueda de la solución.
 \subsubsection{Variables de Decisión y Dominios}
 % Definir con precisión las variables del modelo (ej. matriz X de 9x9).
 % Indicar el dominio de cada variable (ej. D(X_ij) = {1, ..., 9}).
+Como variable de decisión se empleó la variable \verb|solution| un arreglo de dos dimensiones de tamaño $9 \times 9$ conteniendo variables de dominio entero entre el 1 y el 9:
+\begin{flalign*}
+    S = (s_{i,j})_{1\leq i,j \leq9} \hspace{0.5em} con \hspace{0.5em} s_{i,j} \in \{1,2\cdots9\} 
+\end{flalign*}
+
+Definida en Minizinc por medio de:
+\begin{verbatim}
+    array[1..9, 1..9] of var 1..9: solution;
+\end{verbatim}
+
+De esta forma se modela la cuadrilla que debe llenarse de números del 1 al 9, sin necesidad de tener que crear manualmente 81 variables distintas para cada casilla.\\
 
 \subsubsection{Restricciones del Modelo}
 % Formalizar en lenguaje matemático/lógico claro:
@@ -19,37 +52,283 @@
 % 3. Restricción de subcuadrículas 3x3 (todos diferentes).
 % 4. Asignación de pistas iniciales.
 
+Para modelar las reglas del rompecabezas de Sudoku se emplearon un total de cuatro restricciones:
+\begin{enumerate}
+    \item \textbf{Mantener estado inicial del juego:} Durante la resolución de una instancia del Sudoku el jugador solamente rellena las casillas que no se encuentren ya inicialmente definidas. En ningún momento se permite la modificación del estado inicial del Rompecabezas.\\
+    
+    Por ello, en una solución válida para todas aquellas casillas no vacías en el arreglo de entrada, en el caso particular de esta implementación aquellas distintas de 0, su valor debe mantenerse en el arreglo solución. Es decir, para todo $a_{ij}\neq 0$ se debe cumplir que $a_{ij}=s_{ij}$:
+    \begin{flalign*}
+        \forall i,j\in \{1,\cdots,9\}:\hspace{0.5em}a_{i,j}\neq0 \to s_{i,j}=a_{i,j}
+    \end{flalign*}
+    Esto se expresó al interior de \verb|sudoku.mzn| por medio de un condicional y la función de agregación \verb|forall| para obtener la conjunción de restricciones:
+    \begin{verbatim}
+constraint forall (i in 1..9, j in 1..9) (
+    if puzzle[i, j] != 0 then
+        solution[i, j ] = puzzle[i, j]
+    else
+        true
+    endif
+    ); 
+    \end{verbatim}
+    De esta forma se obliga a que al interior del arreglo de solución no se modifiquen los valores impuestos por el arreglo de entrada. Modelando la imposibilidad de cambiar el estado inicial del rompecabezas real.
+
+    \item \textbf{No repetición por filas:} Para imponerla regla de que los valores de las casillas no puedan repetirse por fila se impone la siguiente condición:
+    \begin{flalign*}
+        \forall i\in \{1,\cdots,9\} \hspace{0.5em} \forall j,k\in \{1,\cdots,9\} :\hspace{0.5em}s_{i,j} \neq s_{i,k} 
+    \end{flalign*}
+
+    Es decir, para cada una de las filas del arreglo de solución, cada par de elementos que pertenezcan a la misma fila, deben ser distintos. En Minizinc esta restricción se implementó por medio de nuevo de la función de agregación \verb|forall|, de la restricción global \verb|alldifferent| y la notación de arreglos:
+    \begin{verbatim}
+constraint forall (i in 1..9) (
+  all_different([solution[i, j] | j in 1..9])
+);
+    \end{verbatim}
+    De esta forma, se generan arreglos \verb|solution[i, j]| con $j\in\{1,\cdots,9\}$ lo que corresponde a una fila del arreglo de solución, y se impone la restricción que todos sus elementos deben ser distintos, por medio de la restricción \verb|all_different|. Finalmente, se impone la conjunción de todas esas restricción para todos los $i\in\{1,\cdots,9\}$. Efectivamente imponiendo que todas las filas deban individualmente contener elementos totalmente distintos entre sí.
+
+    \item \textbf{No repetición por columnas:} De forma equivalente, para imponer la no repetición por columnas se emplea la condición:
+    \begin{flalign*}
+        \forall j\in \{1,\cdots,9\} \hspace{0.5em} \forall i,k\in \{1,\cdots,9\} :\hspace{0.5em}s_{i,j} \neq s_{k,j} 
+    \end{flalign*}
+    Lo cual se codifica por medio de una restricción en también equivalente en Minizinc:
+    \begin{verbatim}
+    constraint forall (j in 1..9) (
+      all_different([solution[i, j] | i in 1..9])
+);
+    \end{verbatim}
+    Imponiendo que todas las columnas contengan únicamente elementos distintos entre sí.\\
+
+    \item \textbf{No repetición por bloques:} Finalmente, es necesario imponer también la no repetición de dígitos por cada sub-bloque, para ello definimos los 9 sub-bloques indexados sobre las filas y columnas $R,C \in \{0,1,2\}$:
+    \begin{flalign*}
+        B_{R,C} = \{s_{i,j} \vert 3R +1 \leq i \leq 3R+3, 3C +1 \leq j \leq 3C+3\}
+    \end{flalign*}
+    Observe que $R$ y $C$ definen desplazamientos sobre las filas y columnas respectivamente para iterar sobre los nueve sub-bloques, en dónde al interior de cada uno $i,j\in\{1,2,3\}$.\\
+    
+    Para cada bloque definimos entonces que todas las casillas al interior de un mismo bloque sean distintas:
+
+    \begin{flalign*}
+        \forall R,C \in \{0,1,2\} \hspace{0.5em} \forall s_{i,j},s_{i',j'}\in B_{R,C}:i\neq i' \vee j\neq j' \to s_{i,j} \neq s_{i',j'}
+    \end{flalign*}
+
+    Es decir que cada para de casillas al interior de un mismo sub-bloque deben tener valores distintos, lo que se debe cumplir para todos los 9 sub-bloques.
+
+    Aprovechando la naturaleza iterativa de la definición de los bloques, la restricción en Minizinc se codificó por medio de dos variables auxiliares de iteración \verb|k| y \verb|l|:
+
+    \begin{verbatim}
+constraint forall (k in 0..2, l in 0..2) (
+  all_different([solution [i + 3*k, j+ 3*l] | i in 1..3, j in 1..3])
+);
+    \end{verbatim}
+    De esta forma, se mantiene la misma estructura  lógica: Se itera por medio de desplazamientos en las filas y columnas a través de los 9 sub-bloques, y para el arreglo de cada uno de ellos se impone la conjunción de restricciones \verb|all_different|.
+    
 \subsection{Detalles de Implementación (\texttt{sudoku.mzn})}
 % Describir aspectos relevantes de la implementación sin incluir todo el código.
+Al momento de implementar el modelo en Minizinc de forma adicional se tomaron las siguientes consideraciones adicionales:
 
 \subsubsection{Diferentes Implementaciones de Restricciones}
-% Comparar implementaciones: ej. alldifferent vs pares de desigualdades (!=).
+% Comparar implementaciones
+Alternativamente, para tener mayor control sobre la implementación del modelo en Minizinc, las restricciones de no repetición sobre filas y columnas se puede implementar de forma manual, con dos iteradores por columna o fila respectivamente:
+\begin{verbatim}
+% Implementación alternativa de diferencia con misma fila
+constraint forall(i in 1..9, j1, j2 in 1..9 where j1 < j2) (
+    solution[i, j1] != solution[i, j2]
+\end{verbatim}
+Y para la misma columna:
+\begin{verbatim}
+% Implementación alternativa de diferencia con misma columna
+constraint forall(j in 1..9, i1, i2 in 1..9 where i1 < i2) (
+    solution[i1, j] != solution[i2, j]
+\end{verbatim}
+Observe para estas implementaciones es necesario establecer las condiciones adicionales $i1 < i2$ y $j1 < j2$ de forma que nunca se comparen las mismas celdas y se imponga una restricción de igualdad de una celda consigo misma:
+\begin{verbatim}
+    solution[i,j] != solution[i,j]
+\end{verbatim}
+
+Pues esto resultaría siempre en un problema irresoluble.\\
+
+Por otro lado, la implementación manual de la restricción por sub-bloques no resulta tan trivial. Para ello, se deben emplear cuatro variables para iterar sobre cada casilla del sub-bloque, incluyendo dos condiciones para evitar la no igualdad de la misma celda. Para ello se puede emplear la siguiente implementación:
+\begin{verbatim}
+constraint forall (k, l in 0..2, i1,i2,j1,j2 in 1..3 where i1 < i2 \/ j1 < j2) (
+    solution[i1 + 3*k,j1 + 3*l] != solution[i2 + 3*k,j2 + 3*l]
+);
+\end{verbatim}
+Esta versión de la restricción cubre la totalidad de las $\binom{9}{2}=36$ comparaciones necesarias. Aunque resulta en pares de restricciones redundantes del tipo:
+\begin{verbatim}
+    solution[i1,j1] != solution[i2,j2] /\
+    solution[i2,j2] != solution[i1,j1]
+\end{verbatim}
+
+Para eliminar las restricciones redundantes es posible emplear la fórmula para mapear todas las casillas del sub-bloque a un índice linear $k=3(i - 1) + j$ y así reescribir la restricción como:
+\begin{verbatim}
+constraint forall (k, l in 0..2, i1,i2,j1,j2 in 1..3 where (3*(i1 - 1) + j1) < (3*(i2 - 1) + j2)) (
+    solution[i1 + 3*k,j1 + 3*l] != solution[i2 + 3*k,j2 + 3*l]
+);
+\end{verbatim}
+Lo que elimina totalmente los pares de restricciones redundantes.
 
 \subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
 % Explicar si aplican restricciones redundantes o si hay simetrías. En caso negativo, argumentar por qué.
+\textit{Restricciones Redundantes:}
+Una de las técnicas más comunes para resolver el Sudoku se puede implementar como una restricción redundante para acelerar el proceso de poda de los árboles de reducción:
+\textit{Regla de 45:} Dado que tanto, filas, columnas y sub-bloques deben contener todos los dígitos del 1 al 9, un conjunto común de restricciones redundantes consistente en imponer que todos estos subconjuntos sumen 45, dado que $\sum_{i=1}^{9}i=45$. Implementados en Minizinc por medio de la expresión \verb|sum| se expresan como:
+    \begin{verbatim}
+% Sumas redundantes por Fila y Columna
+constraint forall(i in 1..9) (
+    sum(j in 1..9)(solution[i, j]) == 45 /\
+    sum(j in 1..9)(solution[j, i]) == 45
+);
+
+% Suma redundante por Bloque 3x3
+constraint forall(k, l in 0..2) (
+    sum(i, j in 1..3)(solution[i + 3*k, j + 3*l]) == 45
+);
+    \end{verbatim}
+
+Observe que estas restricciones redundantes permiten reducir el dominio de valores posibles que pueden ocupar las casillas, particularmente para aquellas en filas o columnas con casillas ya previamente llenadas. Por ejemplo, si en una fila únicamente faltan por llenar dos casillas, y la suma de los valores en la fila es igual a 28, entonces las dos casillas restantes deben sumar $45-28=17$, lo que permite reducir el dominio de las dos variables restantes al intervalo $[8..9]$, lo que permite podar enormemente el árbol de búsqueda.
+
+\textit{Rompimiento de Simetrías}
+
+Observe que, dado que una instancia particular de Sudoku se establece por medio de unos valores iniciales fijos que no pueden modificarse. Para una misma instancia del puzzle, no se garantiza que existan soluciones simétricas. Esto se debe a que, aún cuando a partir de una solución válida se puedan obtener otros tableros resueltos por medio de rotaciones, reflexiones y permutaciones de columnas y filas, no se puede garantizar que estas nuevas soluciones sean también solución del problema de Sudoku original, pues es posible que las casillas originales se hayan desplazado.
+Por lo que serían soluciones válidas para instancias distintas del Puzzle.\\
+
+Como ocurre por ejemplo en el Sudoku de la Figura \ref{well_defined}, esa instancia al ser bien definida posee una única solución válida, aún cuando la rotación o reflexión de la solución resulte en tableros de Sudoku igualmente resueltos, no son solución al mismo problema.
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[Instancia bien definida del Sudoku ]{
+    \includegraphics[scale=0.4]{Imagenes/sudoku_well_defined.png}
+    \label{well_defined_a}
+    }
+    \subfloat[Única solución válida de la instancia]{
+    \includegraphics[scale=0.4]{Imagenes/only_solution.png}
+    \label{well_defined_b}
+    }
+\caption{Instancia bien definida del Sudoku y su única solución válida.}
+    \label{well_defined}
+\end{figure}
+Estas soluciones simétricas sólo son soluciones al problema original cuando la posición de las casillas iniciales sea también invariante bajo rotaciones o reflexiones, por ejemplo situándose en el centro del tablero. Como ocurre por ejemplo con la instancia en la Figura \ref{symetric}, observe que al reflejar verticalmente la solución de la  Figura \ref{symetric_b} se obtiene una solución igualmente válida al mismo problema.
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[Instancia con múltiples soluciones simétricas]{
+    \includegraphics[scale=0.4]{Imagenes/symetric_sudoku.png}
+    \label{symetric_a}
+    }
+    \subfloat[Una posible solución]{
+    \includegraphics[scale=0.4]{Imagenes/symetric_solution.png}
+    \label{symetric_b}
+    }
+\caption{Instancia del Sudoku con múltiples soluciones simétricas}
+    \label{symetric}
+\end{figure}
+
+Pero dado que esta condición no se puede garantizar de forma general, para este problema el rompimiento de simetrías no es necesario o útil.\\
+
+También sería útil el rompimiento de simetrías si el problema consistiera de hallar la totalidad de tableros posibles de Sudokus, es decir, todas las soluciones posibles.\\
 
 \subsection{Estrategias de Búsqueda y Distribución}
 % Describir al menos dos anotaciones de búsqueda exploradas en MiniZinc.
 % Ejemplo: int_search(..., first_fail, indomain_min, complete), dom_w_deg, etc.
+Para el análisis de eficiencia de solución se implementaron las siguientes estrategias de búsqueda:
+\begin{itemize}
+    \item \textit{Búsqueda principiante:} Similar a cómo un principiante en la resolución de Sudoku podría aproximarse a la solución del Puzzle, se recorre el arreglo de solución de izquierda a derecha y de arriba hacia abajo (según el aplanamiento en 1D) y en cada casilla se prueban valores en el orden del dominio, empezando por el valor posible más pequeño. Esta estrategia no realiza ninguna decisión en particular para acelerar el proceso de búsqueda de solución. Para ello, se emplean las anotaciones \verb|input_order| para la selección de variables y \verb|indomain_min| para la selección de valores:
+    \begin{verbatim}
+    
+%Búsqueda principiante
+solve :: int_search(
+        solution,         
+        input_order, 
+        indomain_min, 
+        complete) 
+        satisfy;
+    \end{verbatim}.
+
+    \item \textit{Búsqueda intermedia:} Una táctica un poco más avanzada consiste en seleccionar las casillas con la menor cantidad de valores posibles, dado que probar valores incorrectos en estas casillas llevará más rápido a contradicciones, reduciendo así la cantidad de ramas que se deben explorar antes de hallar una solución. Aún así, para el valor de prueba siempre se selecciona el menor valor posible. Para ello, se implementan las anotaciones:
+    \begin{verbatim}
+%Búsqueda intermedia
+solve :: int_search(
+        solution,         
+        first_fail, 
+        indomain_random, 
+        complete) 
+        satisfy;
+    \end{verbatim}
+
+    \item \textit{Búsqueda avanzada:} Por último, como la técnica de búsqueda más informada, se emplea la heurística proporcionada por la anotación \verb|dom_w_deg|, la cual selecciona la variable que maximiza la razón entre el tamaño del dominio y la cantidad de veces que la variable ha resultado en una búsqueda fallida \cite{Stuckey2020}. Adicionalmente, el valor de prueba ahora se selecciona de forma aleatoria en aras de disminuir la posibilidad de caer en ramas profundas de búsqueda por la preferencia de ciertos valores por sobre otros:
+    \begin{verbatim}
+%Búsqueda avanzada
+solve :: int_search(
+        solution,         
+        dom_w_deg, 
+        indomain_random, 
+        complete) 
+        satisfy;
+    \end{verbatim}
+\end{itemize}
 
 \subsection{Pruebas y Análisis Experimental}
 % Presentar la batería de pruebas (ej. instancias fáciles, medias, difíciles).
 % Incluir tablas o gráficas con estadísticas de MiniZinc (nodos explorados, nodos fallidos, tiempo de respuesta).
 
+Posteriormente, se probaron las distintas instancias de implementación de restricciones, en conjunto con las distintas estrategias de búsqueda comparando la cantidad de nodos explorados, el tiempo de respuesta y la forma general de los árboles de búsqueda resultantes. Para la prueba se partió de la instancia de Sudoku \textit{"Al Escargot"} diseñada por el matemático Finlandés Arto Inkala para para ser particularmente complejo de resolver, conservando aún una única solución. A partir de esta instancia, se eliminaron dos pistas para aumentar sustancialmente la cantidad de soluciones posibles, arribando al siguiente Sudoku de prueba:
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.4\textwidth]{Imagenes/test_sudoku.png}
+    \caption{Versión mal definida de Sudoku \textit{Al Escargot} empleada para pruebas de solución.}
+    \label{img_sudoku}
+\end{figure}
+
+A partir de esta instancia se probó el desempeño de las instancias y estrategias de búsqueda para hallar la totalidad de 3630 soluciones posibles, empleando en todos los casos el solver Gecode 6.4.0.
+
+Los resultados de las pruebas se condensaron en la Tabla \ref{tab:sudoku_resultados}, la cual muestra los distintos tiempo de ejecución, nodos explorados, fallidos y la máxima profundidad alcanzada por el árbol de búsqueda. Para cada par de instancia y estrategias de búsqueda se realizó un total de 10 ejecuciones y se consolidó el valor promedio de tiempos de ejecución, tomados a partir del valor \verb|solveTime| arrojado por Minizinc como parte de las estadísticas de solución, junto con su desviación estándar. Esto, a fin de reducir la variación en tiempos de ejecución por \textit{cold starts} o el orden interno del \textit{scheduler} de procesos de la CPU.
+
 \begin{table}[htbp]
     \centering
-    \begin{tabular}{lcccc}
-        \toprule
-        Instancia & Estrategia & Tiempo (s) & Nodos explorados & Nodos fallidos \\
-        \midrule
-        Instancia 1 & Default & -- & -- & -- \\
-        Instancia 1 & Custom 1 & -- & -- & -- \\
-        Instancia 2 & Default & -- & -- & -- \\
-        \bottomrule
-    \end{tabular}
+\begin{tabularx}{\textwidth}{X X X X X X}
+    \toprule
+    \textbf{Instancia} & \textbf{Estrategia} & \textbf{Tiempo (s)} & \textbf{Nodos explorados} & \textbf{Nodos fallidos} & \textbf{Profundidad Máxima} \\
+    \midrule
+    Base & Principiante & 1.542746 $\pm$ 0.0438 & 9467 & 1104 & 18 \\
+    Base & Intermedia & 1.548447 $\pm$ 0.0741 & 9397 & 1069 & 18 \\
+    Base & Avanzada & 1.532463 $\pm$ 0.0783 & 9601 & 1171 & 22 \\
+    Alt. con Redundancias & Principiante & 1.601262 $\pm$ 0.0564 & 11653 & 2197 & 18 \\
+    Alt. con Redundancias & Intermedia & 1.569572 $\pm$ 0.0484 & 11289 & 2015 & 18 \\
+    Alt. con Redundancias & Avanzada & 1.525641 $\pm$ 0.0652  & 9469 & 1105 & 22 \\
+    Alt. sin Redundancias & Principiante & 1.49597 $\pm$ 0.0843 & 11653 & 2197 & 18 \\
+    Alt. sin Redundancias & Intermedia & 1.519158 $\pm$ 0.0655 & 11289 & 2015 & 18 \\
+    Alt. sin Redundancias & Avanzada & 1.507931 $\pm$ 0.0897  & 9695 & 1218 & 22 \\
+    \bottomrule
+\end{tabularx}
     \caption{Comparación de rendimiento para el problema del Sudoku.}
     \label{tab:sudoku_resultados}
 \end{table}
 
+Observe que dado que se hallaron la totalidad de las soluciones del Sudoku, se obligó al solver a recorrer todas las ramas posibles, por lo que la cantidad de nodos explorados y nodos fallidos es constante para una misma búsqueda con instancia y estrategia de búsqueda.
+
+A partir de los resultados obtenidos, como evidencia la Tabla \ref{tab:sudoku_resultados} el mejor par de instancia y solución en cuestión de número de nodos explorados y fallidos fue la instancia Base con la estrategia intermedia, explorando 9367 nodos y fallando en 1069 de ellos. Esto puede deberse a que la instancia base emplea la restricción global \verb|all_different| la cual permite que los solvers como Gecode empleen técnicas de propagación especializadas que aceleran el proceso de búsqueda de solución, lo que no ocurren en las instancias alternativas en dónde las restricción de diferencia se implementan de forma manual, evidenciado por el aumento de nodos explorados para las instancias alternativas de restricciones del modelo.\\
+
+Esta diferencia entre la instancia base y alternativa se hace más evidente al examinar los árboles de búsqueda. Como evidencia la Figura \ref{img_sudoku_trees} obtenidos por medio de la búsqueda de la única solución del Sudoku \textit{Al Escargot} con el solver Gecode Gist, se observa como la instancia base al implementar las restricciones con \verb|all_different| permite la reducción del árbol de búsqueda visitando menos ramas fallidas al fallar más temprano resultante en un árbol menos profundo, con menos nodos y por lo tanto reduciendo los costos de búsqueda de la solución.\\
+
+Por otro lado, la técnica intermedia exploró la menor cantidad de nodos y falló la menor cantidad de veces dado que aunque la técnica avanzada de selección de variables \verb|dom_w_weg| puede aumentar enormemente la posibilidad del solver de fallar de forma temprana, este beneficio es mucho más evidente en problemas de mayor complejidad computacional y restricciones más estrictas que el Sudoku. Esto resulta en que el overhead creado por el periodo de \textit{aprendizaje} que requiere la estrategia de búsqueda y la prioridad que le otorga a variables que ya hayan fallado puede resultar en la toma de decision menos óptimas que simplemente las variables de menor dominio, como realiza \verb|first_fail|.\\
+
+Adicionalmente, la estrategia de selección de valor \verb|first_domain| es preferible en el caso del Sudoku por sobre \verb|domain_random| dado que no genera un overhead de selección por generación de números aleatorios, lo cuál no vale la pena dada la naturaleza de por sí reducida del dominio de las variables en el Sudoku. \\
+
+Aún así, observe que los tiempos de ejecución de todas las instancias y estrategias fueron sumamente similares, variando únicamente en unas pocas centésimas de segundo, lo que resulta de la pequeña magnitud del problema, que no permite que las diferencias en las estrategias de búsqueda se hagan evidentes por sobre las variaciones inherentes en tiempos de procesamiento innatos a variaciones en hardware y software.
+
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[Instancia Base]{
+    \includegraphics[scale=0.5]{Imagenes/arbol_base.png}
+    \label{img_sudoku_tree_base}
+    }
+    \subfloat[Instancia alternativa sin redundancia]{
+    \includegraphics[scale=0.5]{Imagenes/arbol_alt.png}
+    \label{img_sudoku_tree_alt}
+    }
+\caption{Árboles de búsqueda para las instancias Base y Alternativas sin Redundancia para la única solución del Sudoku Al Escargot, con estrategia de búsqueda intermedia.}
+    \label{img_sudoku_trees}
+\end{figure}
+
 \subsection{Conclusiones del Ejercicio}
 % Análisis crítico de los resultados, ventajas y desventajas de las implementaciones ensayadas.
+A partir de la implementación de las distintas versiones de modelo y estrategias de búsqueda para la determinación de soluciones posibles para un Sudoku dado, se hizo evidente que la mejor aproximación al problema consiste en el empleo de restricciones globales ya optimizadas por el solver como \verb|all_different| para la implementación de las distintas restricciones. Adicionalmente, se debe tener en cuenta la verdadera magnitud del problema, incluyendo el número total de variables y la amplitud de dominio de las dominios para seleccionar apropiadamente las estrategias de búsqueda que puedan alcanzar la mayor cantidad de mejorías teniendo en cuenta que aquellas heurísticas de mayor complejidad resultan igualmente en overheads de cálculo mayores, lo que, para problemas de magnitud relativamente pequeña como el Sudoku demostraron no ser viables ni óptimos. 
