@@ -6,6 +6,8 @@
 
 El cuarto ejercicio plantea un problema clásico de deducción lógica combinatoria (perteneciente a la familia de problemas tipo \emph{Zebra} o de emparejamiento multidimensional) sobre tres amigos cuyos nombres de pila son \textbf{Juan}, \textbf{Oscar} y \textbf{Darío}. Cada uno posee un único apellido dentro del conjunto \{\emph{González}, \emph{García}, \emph{López}\}, una edad entera comprendida entre $24$ y $26$ años, y un único género musical favorito entre \{\emph{clásica}, \emph{pop}, \emph{jazz}\}. El propósito consiste en determinar de forma exacta y sin ambigüedad el nombre completo, la edad y la preferencia musical de cada amigo a partir de las pistas lógicas suministradas.
 
+El paradigma $\text{CSP}(\mathcal{FD})$ se ajusta de manera natural a este tipo de acertijos deductivos porque permite expresar declarativamente cada pista como una relación matemática sobre dominios discretos finitos y delegar la inferencia al motor de consistencia local y global. En lugar de codificar árboles procedimentales \emph{ad hoc} de descarte por casos sobre el espacio bruto de emparejamientos, la propagación combinada de desigualdades binarias y biyecciones globales (\texttt{all\_different}) deduce automáticamente las exclusiones cruzadas (tales como conjuntos de Hall) y certifica simultáneamente tanto la existencia como la unicidad de la solución.
+
 \subsubsection{Pistas del Problema}
 
 El enunciado establece cinco proposiciones lógicas que restringen simultáneamente las cuatro dimensiones del problema:
@@ -46,7 +48,7 @@ Siguiendo el criterio de excluir \emph{a priori} de los dominios todos los valor
     D(x_{\text{Pop}})      &= \{25, 26\}     && \text{(por Pista 2: el fan de la música pop no tiene $24$ años)}, \\
     D(x_{v})               &= \{24, 25, 26\} && \forall v \in \{\text{Darío},\, \text{García},\, \text{López},\, \text{Clásica},\, \text{Jazz}\}.
 \end{align*}
-Esta reducción inicial encoge el espacio cartesiano bruto de $3^9 = 19\,683$ tuplas a $1 \times 2^3 \times 3^5 = 1\,944$ estados antes de evaluar una sola restricción binaria o global.
+Esta reducción inicial encoge el espacio cartesiano bruto de $3^9 = 19\,683$ tuplas a $1 \times 2^3 \times 3^5 = 1\,944$ estados antes de evaluar una sola restricción binaria o global. Nótese que $x_{\text{Oscar}}$ se conserva formalmente como variable de decisión con dominio unitario $\{25\}$ (y no como parámetro externo) porque las edades de los tres amigos constituyen las incógnitas endógenas del acertijo y la Pista 3 opera como una restricción unaria de fijación análoga a las casillas preasignadas de un Sudoku, preservando la homogeneidad tipada de la biyección $\mathcal{N}$.
 
 \subsubsection{Restricciones del Modelo}
 
@@ -134,7 +136,7 @@ La Figura~\ref{fig:acertijo_arbol} expone con precisión el mecanismo deductivo 
 
 \subsection{Pruebas y Resultados}
 
-La verificación experimental de \texttt{acertijo.mzn} se llevó a cabo en tres niveles complementarios: (i) validación cruzada de la solución única entre \textbf{Gecode 6.4.0} y \textbf{Chuffed 0.14.0}, obteniendo exactamente la misma asignación biyectiva (Tabla~\ref{tab:acertijo_solucion}); (ii) evaluación comparativa de codificaciones y estrategias de distribución (Tabla~\ref{tab:acertijo_estrategias}); y (iii) una batería de pruebas de \textbf{minimalidad e independencia de pistas} mediante ablación controlada y perturbación contradictoria (Tabla~\ref{tab:acertijo_ablacion_pistas}).
+La verificación experimental de \texttt{problemas/2.4/acertijo.mzn} (automatizada de forma reproducible en la suite \texttt{pruebas/2.4/test\_acertijo.py}) se llevó a cabo en tres niveles complementarios: (i) validación cruzada de la solución única entre \textbf{Gecode 6.4.0} y \textbf{Chuffed 0.14.0}, obteniendo exactamente la misma asignación biyectiva y verificando programáticamente las cinco pistas sobre la salida (Tabla~\ref{tab:acertijo_solucion}); (ii) evaluación comparativa de codificaciones y estrategias de distribución (Tabla~\ref{tab:acertijo_estrategias}); y (iii) una batería de pruebas de \textbf{minimalidad e independencia de pistas} mediante ablación controlada y perturbación contradictoria (Tabla~\ref{tab:acertijo_ablacion_pistas}).
 
 \begin{table}[htbp]
     \centering
@@ -164,7 +166,7 @@ Es inmediato comprobar manualmente que la Tabla~\ref{tab:acertijo_solucion} sati
         (Solver) & de búsqueda & motor & act. & Nod. & Fall. & Nod. & Fall. & Propag. \\
         \midrule
         \texttt{alldifferent} (Gecode)   & Todas ($7$ eval.)                   & $9$  & $0$  & $1$ & $0$ & $1$ & $0$ & $9$  \\
-        \texttt{alldifferent} (Chuffed)  & \texttt{first\_fail} + \texttt{min}  & $52$ & $13$ & $1$ & $0$ & $1$ & $1$ & $33$ \\
+        \texttt{alldifferent} (Chuffed)  & \texttt{first\_fail} + \texttt{min}  & $55$ & $10$ & $1$ & $0$ & $1$ & $1$ & $11$ \\
         \midrule
         Binaria ($\neq$), dom. podado    & \texttt{first\_fail} + \texttt{min}  & $8$  & $7$  & $2$ & $0$ & $3$ & $1$ & $12$ \\
         Binaria ($\neq$), dom. podado    & \texttt{input\_order} + \texttt{min} & $8$  & $7$  & $2$ & $0$ & $3$ & $1$ & $12$ \\

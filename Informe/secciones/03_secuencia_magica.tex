@@ -130,20 +130,48 @@ La Figura~\ref{fig:secuencia_arbol_n4} ilustra el efecto estructural de las rest
 Un hallazgo teórico-experimental fundamental, evidenciado en la Figura~\ref{fig:secuencia_estrategias}, es la \textbf{inversión del ranking entre heurísticas} producida por las restricciones redundantes:
 \begin{itemize}
     \item \textbf{Sin redundantes ($M_0$):} Al comenzar todas las variables con $|D(x_i)| = n$, \texttt{input\_order} + \texttt{indomain\_min} supera ampliamente a \texttt{first\_fail} + \texttt{indomain\_min} ($55$ frente a $117$ nodos en $n=10$; $775$ frente a $10\,557$ nodos en $n=100$), porque instanciar secuencialmente $x_0$ fija el número de ceros de la secuencia, mientras que \texttt{first\_fail} salta dinámicamente hacia variables intermedias cuyos conteos aún no están acotados globalmente.
-    \item \textbf{Con redundantes ($M_3 = \mathcal{C}_{\text{base}} \cup \{R_1, R_2\}$):} La poda en la raíz inducida por $R_2$ rompe la uniformidad inicial y asigna dominio binario $\{0, 1\}$ a todas las variables con $i > \frac{n+1}{2}$. Bajo esta geometría de dominios, \textbf{\texttt{first\_fail} + \texttt{indomain\_min}} (adoptada como estrategia oficial en \texttt{secuencia.mzn}) selecciona primero dichas variables de cola y prueba $x_i = 0$ (valor que coincide con la solución única para todo $i \neq n-4$ cuando $n \ge 7$) y refuta en un solo paso la alternativa $x_i = 1$ gracias a $R_2$. Esto produce una ley exacta óptima de \textbf{$n + 1$ nodos explorados y $\lfloor n/2 \rfloor$ fallos} para todo $n \ge 7$, superando a \texttt{input\_order} + \texttt{indomain\_min} ($2n - 1$ nodos), a \texttt{smallest} + \texttt{indomain\_min} ($3n - 9$ nodos, penalizada por priorizar reiteradamente variables con mínimo $0$ pero gran tamaño de dominio como $x_0$) e incluso superando a la búsqueda por defecto de Gecode y al orden inverso en $n=6$ ($7$ frente a $9$ nodos).
+    \item \textbf{Con redundantes ($M_3 = \mathcal{C}_{\text{base}} \cup \{R_1, R_2\}$):} La poda en la raíz inducida por $R_2$ rompe la uniformidad inicial y asigna dominio binario $\{0, 1\}$ a todas las variables con $i > \frac{n+1}{2}$. Bajo esta geometría de dominios, \textbf{\texttt{first\_fail} + \texttt{indomain\_min}} (adoptada como estrategia oficial en \texttt{secuencia.mzn}) selecciona primero dichas variables de cola y prueba $x_i = 0$ (valor que coincide con la solución única para todo $i \neq n-4$ cuando $n \ge 7$) y refuta en un solo paso la alternativa $x_i = 1$ gracias a $R_2$. Esto produce una ley cerrada óptima de \textbf{$n + 1$ nodos explorados y $n/2$ fallos para todo $n \ge 8$ par} (y, en general, $2\lceil n/2 \rceil + 1$ nodos y $\lceil n/2 \rceil$ fallos para todo $n \ge 12$, además de $n$ nodos para $n \in \{7, 9, 11\}$), superando a \texttt{input\_order} + \texttt{indomain\_min} ($2n - 1$ nodos en $n$ par), a \texttt{smallest} + \texttt{indomain\_min} ($3n - 9$ nodos, penalizada por priorizar reiteradamente variables con mínimo $0$ pero gran tamaño de dominio como $x_0$) e incluso superando a la búsqueda por defecto de Gecode y al orden inverso en $n=6$ ($7$ frente a $9$ nodos).
 \end{itemize}
 
 \subsection{Pruebas y Análisis Experimental}
 
-Se diseñó una batería sistemática de $12$ archivos de datos (\texttt{datos/2.3/secuencia\_n*.dzn}) que cubren exhaustivamente todos los regímenes matemáticos del problema:
+Se diseñó una batería sistemática de $12$ archivos de datos (\texttt{datos/2.3/secuencia\_n*.dzn}) verificada automáticamente mediante el script de regresión \texttt{pruebas/2.3/test\_secuencia.py} (que incluye además una prueba negativa de rechazo por aserción para entradas inválidas $n < 1$), cubriendo exhaustivamente todos los regímenes matemáticos del problema:
 \begin{enumerate}
-    \item \textbf{Casos borde pequeños insatisfacibles ($n \in \{1, 2, 3\}$):} verifican la ausencia de falsos positivos y la detección temprana de inconsistencia en la raíz ($0$ soluciones).
+    \item \textbf{Casos borde pequeños insatisfacibles ($n \in \{1, 2, 3\}$):} verifican la ausencia de falsos positivos y la detección temprana de inconsistencia sin ramificación ($0$ soluciones: en $n \in \{1, 2\}$ la contradicción se detecta estáticamente durante el aplanamiento a FlatZinc y en $n = 3$ en la propagación raíz).
     \item \textbf{Caso multimodal ($n = 4$):} única longitud entera que admite exactamente $2$ secuencias mágicas distintas: $(1, 2, 1, 0)$ y $(2, 0, 2, 0)$.
     \item \textbf{Caso esporádico ($n = 5$) e insatisfacibilidad no trivial ($n = 6$):} validan la solución única $(2, 1, 2, 0, 0)$ en $n=5$ y la refutación completa ($0$ soluciones) en el último entero positivo carente de secuencia mágica ($n=6$).
-    \item \textbf{Familia paramétrica general y pruebas de estrés ($n \in \{7, 10, 15, 20, 50, 100\}$):} comprueban la convergencia hacia la ley estructural única para todo $n \ge 7$, dada por $x_0 = n - 4$, $x_1 = 2$, $x_2 = 1$, $x_{n-4} = 1$ y $x_k = 0$ para todo $k \notin \{0, 1, 2, n-4\}$, así como la escalabilidad asintótica del modelo.
+    \item \textbf{Familia paramétrica general y pruebas de estrés ($n \in \{7, 10, 15, 20, 50, 100\}$):} comprueban la convergencia hacia la ley estructural única para todo $n \ge 7$, dada por $x_0 = n - 4$, $x_1 = 2$, $x_2 = 1$, $x_{n-4} = 1$ y $x_k = 0$ para todo $k \notin \{0, 1, 2, n-4\}$, así como la escalabilidad asintótica en instancias pares e impares.
 \end{enumerate}
 
-Todas las instancias fueron ejecutadas con enumeración completa (\texttt{-a}) tanto en \textbf{Gecode 6.4.0} (propagación por dominios finitos) como en \textbf{Chuffed 0.14.0} (generación perezosa de cláusulas), verificando coincidencia exacta en el conjunto de soluciones reportadas para los $12$ casos. En $n=100$, Gecode resuelve el modelo completo con $100$ variables enteras, $101$ nodos, $50$ fallos y $14\,711$ propagaciones ($1.43\text{ ms}$ de tiempo de resolución), mientras que Chuffed introduce $30\,100$ variables booleanas internas para codificar los literales de dominio, requiriendo $166$ nodos, $55$ fallos ($55$ \emph{nogoods}) y $9.0\text{ ms}$.
+Todas las instancias fueron ejecutadas con enumeración completa (\texttt{-a}) tanto en \textbf{Gecode 6.4.0} (propagación por dominios finitos) como en \textbf{Chuffed 0.14.0} (generación perezosa de cláusulas), verificando programáticamente coincidencia exacta en el conjunto de soluciones reportadas y el cumplimiento de la definición autodescriptiva en los $12$ casos (Tabla~\ref{tab:secuencia_bateria_dzn}). En $n=100$, Gecode resuelve el modelo completo con $100$ variables enteras, $101$ nodos, $50$ fallos y $14\,711$ propagaciones ($1.43\text{ ms}$ de tiempo de resolución), mientras que Chuffed introduce $30\,100$ variables booleanas internas para codificar los literales de dominio, requiriendo $166$ nodos, $55$ fallos ($55$ \emph{nogoods}) y $9.0\text{ ms}$.
+
+\begin{table}[htbp]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{3.6pt}
+    \begin{tabular}{llclrrrrr}
+        \toprule
+        Archivo \texttt{.dzn} & Régimen & Sol. & Secuencia(s) enumerada(s) & \multicolumn{3}{c}{Gecode 6.4.0} & \multicolumn{2}{c}{Chuffed 0.14.0} \\
+        \cmidrule(lr){5-7} \cmidrule(lr){8-9}
+        (\texttt{datos/2.3/}) & evaluado & (\texttt{-a}) & ($S = (x_0, \dots, x_{n-1})$) & Nod. & Fall. & Propag. & Nod. & Fall. \\
+        \midrule
+        \texttt{secuencia\_n1}   & Borde   & $0$ & \texttt{UNSAT} (en aplanamiento)    & $0$   & $0$  & $0$       & $0$   & $0$  \\
+        \texttt{secuencia\_n2}   & Borde   & $0$ & \texttt{UNSAT} (en aplanamiento)    & $0$   & $0$  & $0$       & $0$   & $0$  \\
+        \texttt{secuencia\_n3}   & Borde   & $0$ & \texttt{UNSAT} (en nodo raíz)       & $0$   & $1$  & $2$       & $1$   & $1$  \\
+        \texttt{secuencia\_n4}   & Multim. & $2$ & $(1,2,1,0)$ y $(2,0,2,0)$           & $5$   & $1$  & $37$      & $3$   & $3$  \\
+        \texttt{secuencia\_n5}   & Espor.  & $1$ & $(2,1,2,0,0)$                       & $5$   & $2$  & $54$      & $3$   & $3$  \\
+        \texttt{secuencia\_n6}   & Crítico & $0$ & \texttt{UNSATISFIABLE}              & $7$   & $4$  & $97$      & $4$   & $4$  \\
+        \texttt{secuencia\_n7}   & General & $1$ & $(3,2,1,1,0,0,0)$                   & $7$   & $3$  & $105$     & $4$   & $4$  \\
+        \texttt{secuencia\_n10}  & General & $1$ & $(6,2,1,0,0,0,1,0,0,0)$             & $11$  & $5$  & $231$     & $7$   & $7$  \\
+        \texttt{secuencia\_n15}  & Impar   & $1$ & $x_0=11, x_1=2, x_2=1, x_{11}=1$    & $17$  & $8$  & $478$     & $17$  & $13$ \\
+        \texttt{secuencia\_n20}  & Escal.  & $1$ & $x_0=16, x_1=2, x_2=1, x_{16}=1$    & $21$  & $10$ & $799$     & $26$  & $15$ \\
+        \texttt{secuencia\_n50}  & Estrés  & $1$ & $x_0=46, x_1=2, x_2=1, x_{46}=1$    & $51$  & $25$ & $3\,903$  & $78$  & $30$ \\
+        \texttt{secuencia\_n100} & Estrés  & $1$ & $x_0=96, x_1=2, x_2=1, x_{96}=1$    & $101$ & $50$ & $14\,711$ & $166$ & $55$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{Verificación exhaustiva (\texttt{-a}) de las $12$ instancias \texttt{.dzn} sobre \texttt{secuencia.mzn} en Gecode 6.4.0 y Chuffed 0.14.0 (para $n \ge 15$, las componentes omitidas valen $0$).}
+    \label{tab:secuencia_bateria_dzn}
+\end{table}
 
 \begin{table}[htbp]
     \centering
@@ -255,7 +283,7 @@ Por su parte, la Tabla~\ref{tab:secuencia_formulaciones} contrasta las tres codi
 \subsection{Conclusiones del Ejercicio}
 
 \begin{enumerate}
-    \item \textbf{Primacía de la proyección algebraica global ($R_1 + R_2$) sobre la propagación local:} Las restricciones básicas de conteo \texttt{count} son incapaces por sí solas de acotar globalmente las sumas ponderadas de frecuencias cuando las variables están libres, originando un crecimiento superlineal ($\Theta(n^2)$ nodos y $\Theta(n^4)$ propagaciones). La inclusión conjunta de $R_1$ y $R_2$ proyecta la estructura global del problema sobre dos hiperplanos lineales diofánticos que podan la mitad superior de los dominios a $\{0, 1\}$ en la raíz, reduciendo la complejidad empírica a una cota exacta de $n + 1$ nodos y logrando una aceleración superior a tres órdenes de magnitud ($2\,802\times$) en $n=100$.
+    \item \textbf{Primacía de la proyección algebraica global ($R_1 + R_2$) sobre la propagación local:} Las restricciones básicas de conteo \texttt{count} son incapaces por sí solas de acotar globalmente las sumas ponderadas de frecuencias cuando las variables están libres, originando un crecimiento superlineal ($\Theta(n^2)$ nodos y $\Theta(n^4)$ propagaciones). La inclusión conjunta de $R_1$ y $R_2$ proyecta la estructura global del problema sobre dos hiperplanos lineales diofánticos que podan la mitad superior de los dominios a $\{0, 1\}$ en la raíz, reduciendo la complejidad empírica a una ley lineal exacta de $2\lceil n/2 \rceil + 1$ nodos ($n + 1$ en todo $n \ge 8$ par) y logrando una aceleración superior a tres órdenes de magnitud ($2\,802\times$) en $n=100$.
     \item \textbf{Acoplamiento entre restricciones redundantes y heurística de búsqueda:} Los experimentos demuestran que una heurística de distribución no puede seleccionarse de forma aislada respecto al modelo: \texttt{first\_fail} + \texttt{indomain\_min} pasa de ser subóptima en el modelo base ($117$ nodos en $n=10$ debido a dominios iniciales homogéneos) a ser estrictamente óptima en todos los valores de $n$ evaluados tras incorporar $R_2$, gracias a la asimetría de tamaños de dominio creada por la cota $\lfloor \frac{n-1}{i-1} \rfloor$.
     \item \textbf{Superioridad de restricciones globales frente a reificación explícita y ausencia de simetrías:} Codificar el conteo mediante el predicado global \texttt{count} elimina las $n^2$ variables booleanas auxiliares de la formulación reificada, disminuyendo en casi un orden de magnitud las propagaciones y el tiempo de ejecución. Asimismo, se demostró rigurosamente que la naturaleza autorreferencial de $x_i$ impide cualquier simetría de índices o valores, preservando la completitud en la enumeración de todas las secuencias mágicas.
 \end{enumerate}

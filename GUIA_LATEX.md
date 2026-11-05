@@ -46,6 +46,11 @@ taller1-CSP/
 ├── datos/                     # Instancias de prueba (.dzn) por numeral del taller
 │   └── 2.3/
 │       └── secuencia_n*.dzn
+├── pruebas/                   # Suites de pruebas automatizadas por numeral
+│   ├── 2.3/
+│   │   └── test_secuencia.py
+│   └── 2.4/
+│       └── test_acertijo.py
 ├── Informe/
 │   ├── main.tex               # Archivo raíz principal (portada, índice e imports)
 │   ├── main.pdf               # PDF compilado resultante
