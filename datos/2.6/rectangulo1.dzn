@@ -1,0 +1,12 @@
+% =============================================================================
+% Taller 1 - Problema 2.6: Construccion de un Rectangulo - Instancia 1 (Taller)
+% Ejemplo del enunciado: rectangulo de 5 x 4 (area 20) con n = 6 cuadrados
+% =============================================================================
+
+W = 5;
+H = 4;
+n = 6;
+lado = [3, 2, 2, 1, 1, 1];
+
+usar_redundantes = true;
+romper_simetrias = true;

@@ -14,10 +14,14 @@ Proyecto del Taller 1 para la asignatura **Programación por Restricciones**, Es
 ## Estructura del Repositorio
 
 - `problemas/`: Modelos en MiniZinc organizados en subcarpetas por numeral del taller.
+  - `2.2/kakuro.mzn`: Modelo CSP parametrizado para el problema de Kakuro.
   - `2.3/secuencia.mzn`: Modelo CSP parametrizado para el problema de la Secuencia Mágica.
   - `2.4/acertijo.mzn`: Modelo CSP orientado a edades para el problema del Acertijo Lógico.
+  - `2.6/rectangulo.mzn`: Modelo CSP parametrizado para el problema de Construcción de un Rectángulo.
 - `datos/`: Instancias de prueba `.dzn` organizadas por numeral de problema.
+  - `2.2/kakuro*.dzn`: Instancias de prueba para Kakuro (tableros $5\times 4$, $7\times 7$ y $8\times 8$).
   - `2.3/secuencia_n*.dzn`: Batería de 12 instancias de evaluación para Secuencia Mágica ($n \in \{1, \dots, 100\}$).
+  - `2.6/rectangulo*.dzn`: Instancias de prueba para Construcción de Rectángulo ($5\times 4$, $8\times 5$ y $10\times 7$).
 - `pruebas/`: Suites automatizadas de validación, equivalencia entre solvers y pruebas de ablación.
   - `2.3/test_secuencia.py`: Pruebas automatizadas para Secuencia Mágica (`Gecode` y `Chuffed`).
   - `2.4/test_acertijo.py`: Pruebas automatizadas para Acertijo Lógico (`Gecode` y `Chuffed`).
@@ -34,11 +38,17 @@ Proyecto del Taller 1 para la asignatura **Programación por Restricciones**, Es
 Desde la raíz del repositorio (`taller1-CSP/`):
 
 ```bash
+# Punto 2.2: Kakuro (resolución con instancia .dzn)
+minizinc --solver gecode problemas/2.2/kakuro.mzn datos/2.2/kakuro1.dzn
+
 # Punto 2.3: Secuencia Mágica (enumeración completa con instancia .dzn)
 minizinc --solver gecode -a problemas/2.3/secuencia.mzn datos/2.3/secuencia_n4.dzn
 
 # Punto 2.4: Acertijo Lógico (enumeración completa sin parámetros externos)
 minizinc --solver gecode -a problemas/2.4/acertijo.mzn
+
+# Punto 2.6: Construcción de un Rectángulo (resolución con instancia .dzn)
+minizinc --solver gecode problemas/2.6/rectangulo.mzn datos/2.6/rectangulo1.dzn
 
 # Ejecución de las suites de pruebas automatizadas (Gecode + Chuffed)
 python pruebas/2.3/test_secuencia.py
