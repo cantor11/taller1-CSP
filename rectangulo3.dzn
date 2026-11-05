@@ -1,0 +1,12 @@
+% =============================================================================
+% Taller 1 - Problema 2.6: Construccion de un Rectangulo - Instancia 3 (Grande)
+% Rectangulo de 10 x 7 (area 70) con n = 12 cuadrados
+% =============================================================================
+
+W = 10;
+H = 7;
+n = 12;
+lado = [4, 4, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1];
+
+usar_redundantes = true;
+romper_simetrias = true;
