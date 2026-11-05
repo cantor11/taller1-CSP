@@ -24,7 +24,7 @@ Proyecto del Taller 1 para la asignatura **Programación por Restricciones**, Es
 - `Informe/`: Documento LaTeX del informe modularizado por problemas.
   - `main.tex`: Documento raíz con la portada, integrantes e índice.
   - `secciones/`: Archivos `.tex` independientes para cada uno de los 6 problemas y conclusiones.
-  - `Imagenes/`: Carpeta para recursos gráficos, árboles de búsqueda, curvas experimentales y logo institucional.
+  - `Imagenes/`: Carpeta para recursos gráficos (subcarpetas modulares `2.3/` y `2.4/` para figuras de problema, y recursos globales en la raíz).
 - `Taller 1.pdf`: Enunciado oficial del taller.
 - `GUIA_LATEX.md`: **Guía paso a paso de instalación, configuración y uso de LaTeX en Visual Studio Code.**
 - `.vscode/settings.json`: Configuración para compilar con `pdflatex` y sincronización en vivo.

@@ -55,7 +55,9 @@ taller1-CSP/
 │   ├── main.tex               # Archivo raíz principal (portada, índice e imports)
 │   ├── main.pdf               # PDF compilado resultante
 │   ├── Imagenes/
-│   │   └── logoUV.jpg         # Imágenes, diagramas y logos
+│   │   ├── logoUV.jpg         # Imágenes y logos institucionales (raíz)
+│   │   ├── 2.3/               # Figuras y diagramas de Secuencia Mágica
+│   │   └── 2.4/               # Figuras y diagramas de Acertijo Lógico
 │   └── secciones/             # Subarchivos modulares por problema
 │       ├── 01_sudoku.tex
 │       ├── 02_kakuro.tex
@@ -102,17 +104,17 @@ taller1-CSP/
    *No borres esta línea.* Le indica a la extensión que al guardar ese archivo hijo debe compilar el documento completo `main.tex`.
 
 ### 5.2. ¿Cómo agregar imágenes?
-1. Guarda la imagen en la carpeta `Informe/Imagenes/` (ej: `grafo.png`).
-2. En tu archivo de sección, insértala así:
+1. Si la imagen es general del documento, guárdala en la raíz de `Informe/Imagenes/` (ej: `logoUV.jpg`). Si es específica de un problema, guárdala en su subcarpeta correspondiente (ej: `Informe/Imagenes/2.3/grafo.png`).
+2. En tu archivo de sección, insértala indicando la subcarpeta relativa a `Imagenes/`:
    ```latex
    \begin{figure}[htbp]
        \centering
-       \includegraphics[width=0.7\textwidth]{grafo.png}
+       \includegraphics[width=0.7\textwidth]{2.3/grafo.png}
        \caption{Árbol de búsqueda para la instancia 1.}
        \label{fig:arbol_instancia1}
    \end{figure}
    ```
-   *(Nota: Gracias al comando `\graphicspath{{Imagenes/}}` en el preámbulo, no es necesario escribir toda la ruta).*
+   *(Nota: Gracias al comando `\graphicspath{{Imagenes/}}` en el preámbulo, solo necesitas especificar la ruta relativa desde `Imagenes/`).*
 
 ### 5.3. ¿Cómo agregar tablas de resultados?
 En cada sección ya tienes una plantilla con `booktabs`. Puedes replicarla así:
