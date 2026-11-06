@@ -8,47 +8,342 @@
 % 2. separate(A, B): la persona A debe estar separada de la persona B (no contiguas).
 % 3. distance(A, B, M): las personas A y B deben estar separadas como máximo por M personas.
 
+Se tiene un grupo de $N$ personas que quieren organizarse para una foto. Las personas puede establecer una serie de preferencias sobre su posición con respecto a otras personas. En particular se establecen tres clases de preferencias:
+\begin{enumerate}
+    \item \textit{Next(A,B):} Establece que la persona A debe estar junto a la persona B.
+    \item \textit{Separate(A,B):} Establece que la persona A y B deben estar separados en la foto.
+    \item \textit{Distance(A, B, M):} Establece que la persona A y B deben estar separadas por máximo $M$ personas.
+\end{enumerate}
 \subsubsection{Parámetros y Estructura de Entrada}
 % Detallar los arreglos de entrada:
 % personas, next (matriz k x 2), separate (matriz s x 2), distance (matriz w x 3).
+Para los datos de entrada se emplean un total de 4 arreglos, el primero define la cantidad, nombre y posición inicial de las personas a organizar para la foto, y los demás 3 definen las distintas restricciones a tener en cuenta:
+\begin{itemize}
+    \item \textbf{Personas:} Se define un arreglo de dimensión desconocida $n$ de cadenas de caracteres \textit{strings} para recibir los nombres de las personas a organizar en foto.
+    \begin{flalign*}
+    P = (p_{i})_{1\leq i\leq n} \hspace{0.5em} con \hspace{0.5em} p_{i} \in \Sigma^* 
+\end{flalign*}
+Para $\Sigma=\{a,b,c\cdots\}$ y $n$ la longitud del arreglo, la cual representa la cantidad de personas a ordenar.
 
+Codificad en Minizinc por medio de la expresión:
+\begin{verbatim}
+    array[int] of string: personas;
+\end{verbatim}
+Observe que el arreglo se define con dimensión \verb|int| dado que inicialmente no se conoce la cantidad exacta de personas a organizar.
+
+\item \textbf{Next:} Dado que Minizinc no permite la definición de arreglos anidados, es decir un arreglo de arreglos, se emplea un arreglo 2D de enteros para almacenar la totalidad de las restricciones Next de entrada. En el arreglo cada fila representa una preferencia, por lo que el arreglo tiene dimensión $k \times 2$ dado que cada preferencia next tiene únicamente dos valores, que corresponden a las posiciones en el arreglo \textit{personas} de la dupla que prefiere estar juntos en la foto. Adicionalmente, dado que $k$ corresponde al número de preferencias \textit{Next} contempladas en la instancia del problema asumiendo que no se contemplan ninguna preferencia redundante o duplicada $k$ se encuentra acotada por $k\leq \binom{n}{2} = \frac{n(n-1)}{2}$ para un total de $n$ personas.
+El arreglo se define entonces como:
+    \begin{flalign*}
+    X = (x_{i,j})_{1\leq i\leq 2, \hspace{0.5em} 0\leq j\leq \frac{n(n-1)}{2}} \hspace{0.5em} con \hspace{0.5em} x_{i,j} \in  [1,n] \wedge x_{i,j} \neq x_{i+1,j} 
+\end{flalign*}
+Observe que dado que una persona no puede preferir estar junto a sí misma en la foto, dentro de una misma fila los elementos del arreglo deben ser distintos, definiendo una preferencia entre dos personas distintas.
+El arreglo se incluyen en el modelo en Minizinc por medio de:
+\begin{verbatim}
+    array[int, 1..2] of 1..length(personas): next;
+\end{verbatim}
+De nuevo con una dimensión desconocida dado que su longitud depende del número de preferencias incluidas en la instancia del problema, y delimitando el valor de los elementos del arreglo al intervalo $[1,n]$
+
+\item \textbf{Separate:} Definido de forma idéntica \textbf{Next}, se emplea un arreglo bidimensional de enteros para representar las preferencias $Separate(A,B)$ incluidas en el problema. Tiene de igual forma dimensión $l\times2$ con $0\leq l \leq \frac{n(n-1)}{2}$:
+    \begin{flalign*}
+    R = (r_{i,j})_{1\leq i\leq 2, \hspace{0.5em} 0\leq j\leq \frac{n(n-1)}{2}} \hspace{0.5em} con \hspace{0.5em} r_{i,j} \in  [1, n] \wedge r_{i,j} \neq r_{i+1,j} 
+\end{flalign*}
+Teniendo en cuenta de nuevo que una persona no puede sentarse a parte de sí misma.\\
+
+El arreglo se implementa en Minizinc de forma equivalente:
+\begin{verbatim}
+    array[int, 1..2] of 1..length(personas): separate;
+\end{verbatim}
+
+\item \textbf{Distance:} Por último, para recibir las preferencias de tipo $distance(A,B,m)$, se empleó igualmente un arreglo de dos dimensiones, pero esta vez de tamaño $h\times3$ pues una preferencia de distancia tiene tres párametros, la posición de las dos personas en el arreglo de personas y el valor $m$ representando la cantidad máxima de personas que pueden separar a $A$ y $B$.\\
+
+Observe que una vez más, al establecer una preferencia para la posición de dos personas el número de preferencias de distancia posibles se encuentra acotado $0\leq h \leq \frac{n(n-1)}{2}$. Aún cuando dos preferencias del tipo $(A,B,m_1)$ y $(A,B,m_2)$ para $m_1 \neq m_2$ se consideran preferencias diferentes, la consideración de ambas al tiempo resultaría en un problema sobre-restringido sin solución posible, y un caso dónde $m_1=m_2$ simplemente establecería la misma preferencia dos veces. Por lo que igual es razonable emplear la misma cota para el número máximo de preferencias de distancia entre $n$ personas. De forma que definimos el arreglo como:
+\begin{flalign*}
+    D = (d_{i,j})_{1\leq i\leq 3, \hspace{0.5em} 0\leq j\leq \frac{n(n-1)}{2}} \hspace{0.5em} con \hspace{0.5em} d_{i,j} \in  [1,n] \wedge i=1 \to d_{i,j} \neq d_{i+1,j} 
+\end{flalign*}
+Observe que podemos definir la totalidad del dominio del arreglo como el intervalo $[1,n]$ dado que a lo sumo dos personas pueden situarse a lo sumo a una distancia de $n-1$ personas entre sí, por lo que una preferencia con $m>n$ se cumpliría siempre y no tendría sentido explicitarla.\\
+
+Por último, igualmente es útil también impedir una preferencia dónde $A=B$ dado que de todas formas una persona siempre está sentada a 0 personas de distancia de sí misma y todas las preferencias de este tipo se cumplirían siempre. Por lo que imponemos $i=1 \to d_{i,j} \neq d_{i+1,j} $ para impedir que los dos primeros valores de una fila coincidan. Sobre la tercera columna del arreglo, que representa la cantidad máxima de personas que pueden separar a $A$ de $B$ no se impone ninguna restricción a excepción del dominio $m\in [1,n]$ pues la preferencia puede explicitar cualquier valor de distancia.\\
+
+Este arreglo se implementó dentro de Minizinc como:
+\begin{verbatim}
+    array[int, 1..3] of 1..length(personas): distance;
+\end{verbatim}
+
+\end{itemize}
 \subsubsection{Variables de Decisión y Dominios}
 % Explicar el modelado de variables (ej. pos[p]: posición de la persona p en la fila, o fila[i]: persona en la posición i).
 % Justificar el uso de un modelo dual con canalización (inverse) si aplica.
+Como variable de decisión se determinó emplear un único arreglo unidimensional de longitud igual al arreglo de personas conteniendo enteros del 1 a $n$, representando la posición en la fila de la foto de las personas en el arreglo original de personas. Por ejemplo, para un arreglo de personas $["Carlos", "Maria", "Juan"]$ un arreglo de solución $[2,3,1]$ representa que en el orden de solución final para la foto, Carlos va de segundo, Maria de tercera y Juan de primero. Con lo que el orden para la foto corresponde a Juan-Maria-Carlos.\\
 
+Dado que cada persona sólo puede ocupar un único lugar los valores del arreglo son las posiciones del arreglo original de personas, es decir que están en el intervalo $[1,n]$. Por lo que lo definimos de forma similar al arreglo de personas:
+    \begin{flalign*}
+    S = (s_{i})_{1\leq i\leq n} \hspace{0.5em} con \hspace{0.5em} s_{i} \in [1,n] 
+\end{flalign*}
+
+Para la implementación en Minizinc, el arreglo se define de igual longitud que el arreglo de Personas por medio del operador \verb|index_set()| para extraer las posiciones del arreglo de personas como un arreglo:
+\begin{verbatim}
+    array[index_set(personas)] of var 1..length(personas): posiciones;
+\end{verbatim}
 \subsubsection{Restricciones del Modelo}
 % Formalizar en lenguaje matemático:
 % 1. Cada persona ocupa una única posición (alldifferent).
 % 2. Restricción next(A, B): |pos[A] - pos[B]| = 1.
 % 3. Restricción separate(A, B): |pos[A] - pos[B]| > 1.
 % 4. Restricción distance(A, B, M): |pos[A] - pos[B]| - 1 <= M.
+Para la definición del modelo del problema se emplearon un total de 4 restricciones:
+\begin{enumerate}
+    \item \textbf{Posiciones únicas:} Dado que cada valor en el arreglo de solución representa la posición que ocupa una persona en la fila de la foto, dado que dos personas no pueden ocupar la misma posición, todos los valores deben ser distintos:
+        \begin{flalign*}
+        \forall i,j\in \{1,\cdots,n\}:\hspace{0.5em}i\neq j \to s_{i} \neq s_j \hspace{0.5em} 
+    \end{flalign*}
+    De forma que cada par de valores en el arreglo de solución deben ser distintos. Observe que dado que el arreglo de solución $S$ es igualmente de tamaño $n$, y todos sus valores deben ser distintos con dominio de 1 a $n$, se garantiza que todas las personas aparezcan en la foto y ocupen un lugar válido, pues se deben tener $n$ valores distintos en un arreglo de longitud $n$ de dominio $[1,n]$.\\
 
+    En Minizinc la restricción se implementa simplemente por medio de la restricción global \verb|all_different|:
+    \begin{verbatim}
+    %Todas las posiciones diferentes
+    constraint all_different(posiciones);
+    \end{verbatim}
+
+    \item \textbf{Next to:} Para imponer la restricciones de las preferencias de tipo \textit{junto a} se debe imponer que por cada fila del arreglo \textit{next} la distancia entre las personas sea igual a 1. Para ello, se puede emplear el valor absoluto de la resta entre las posiciones de las personas correspondientes en el arreglo de solución. Dado que los valores de este arreglo representa la posición de las personas, su diferencia permite conocer la distancia entre ellas. Y una distancia igual a 1 corresponde a dos personas una junta a otra:
+        \begin{flalign*}
+        \forall i\in \{1,\cdots,k\}:\hspace{0.5em}|s_{x_{i,1}}-s_{x_{i,2}}| =1\hspace{0.5em} con  \hspace{0.5em}X\in S^{k\times2}
+    \end{flalign*}
+    De esta forma, cada fila del arreglo de preferencias \textbf{Next} $X$ define una restricción estableciendo que la distancia entre las personas $A$ y $B$ en el arreglo de solución debe ser exactamente 1. Efectivamente imponiendo que estén una junto a otra.\\
+
+    Para implementar en Minizinc se emplea el operador \verb|index_set_1of2| que retorna el arreglo de posiciones de la primera dimensión de un arreglo 2D, permitiendo iterar sobre las filas del arreglo de preferencias:
+    \begin{verbatim}
+    %Next to:
+    constraint forall(i in index_set_1of2(next)) (
+      abs(posiciones[next[i,1]] - posiciones[next[i,2]]) = 1
+    );
+    \end{verbatim}
+
+    \item \textbf{Separate:} De forma similar, para implementar las preferencias de separación, se debe establecer que en el arreglo de solución la diferencia entre los valores en la posición que representa a las personas $A$y $B$ al interior de la preferencia debe ser en este caso, explícitamente distinto de 1. Impiendo que las personas se encuentran una junto a la otra:
+    \begin{flalign*}
+        \forall i\in \{1,\cdots,l\}:\hspace{0.5em}|s_{r_{i,1}}-s_{r_{i,2}}| \neq1\hspace{0.5em} con  \hspace{0.5em}R\in S^{l\times2}
+    \end{flalign*}
+
+    En Minizinc, la restricción se implementa de forma equivalente:
+    \begin{verbatim}
+    %Separate:
+    constraint forall(i in index_set_1of2(separate)) (
+      abs(posiciones[separate[i,1]] - posiciones[separate[i,2]]) != 1
+    );
+    \end{verbatim}
+    \item \textbf{Distance:} Por último, para implementar las preferencias de distancia, se emplea la misma estructura de las restricciones anteriores, pero en este caso la distancia entre las personas en la foto debe ser máximo $m+1$. Puesto que para dos personas con $m+1$ distancia entre ellos en la fila, hay $m$ entre ellos. Por ejemplo, si dos personas se encuentran uno junto a otro, están a una distancia de $1$ pero hay cero personas entre ellos. Igualmente, si dos personas están a una distancia de 2, están separados por 1 persona. Por ello, una separación máxima de $m$ personas corresponde con una distancia máxima de $m+1$.\\
+    
+    Este valor $m$ lo obtenemos a partir del valor de la tercera columna en el arreglo de preferencias:
+    \begin{flalign*}
+        \forall i\in \{1,\cdots,h\}:\hspace{0.5em}|s_{d_{i,1}}-s_{d_{i,2}}| =d_{i,3}+1\hspace{0.5em} con  \hspace{0.5em}D\in S^{h\times3}
+    \end{flalign*}
+    Y de nuevo, para la implementación en Minizinc podemos emplear el operador \verb|index_set_1of2| para recorrer las filas del arreglo de preferencias:
+    \begin{verbatim}
+    %Distances:
+    constraint forall(i in index_set_1of2(distance)) (
+      abs(posiciones[distance[i,1]] - posiciones[distance[i,2]]) <= distance[i,3] + 1
+    );
+    \end{verbatim}
+    \end{enumerate}
 \subsection{Detalles de Implementación (\texttt{reunion.mzn})}
+A continuación se detallan algunas de las características adicional tenidas en cuentas durante la codificación del modelo de restricciones para el problema de la Reunión:
 
+\subsubsection{Diferentes Implementaciones de Restricciones}
+Una implementación alternativa de las restricciones del modelo se puede lograr al cambiar el significado de la variable de decisión. Consideremos que la fila se puede visualizar como una lista enlazada en dónde cada persona conoce quien es su vecino de la derecha, así como variable de decisión se define el arreglo \textit{sig} en dónde la posición $sig[i]$ corresponde a la persona que está a la derecha de la persona $i$:
+\begin{verbatim}
+    % sig[A] es la persona que está inmediatamente a la derecha de A (0 si es el final de la fila)
+    array[0..N] of var 0..N: sig;
+\end{verbatim}
+Observe que debemos emplear un nodo fantasma, una persona $0$ para poder considerar el arreglo como un anillo cerrado, de esta forma definimos que el valor $sig[i]=0$, indica que la persona $i$ se encuentra al final de la fila dado que no tiene ningún vecino y apunta al nodo fantasma y de igual forma el valor se $sig[0]$ corresponde a la primera persona en la fila.\\
+
+Para garantizar que el arreglo forme efectivamente un camino cerrado con la totalidad de nodos, dónde todos son sucesor de algún, empleamos el \textit{constraint circuit} de entre las restricciones a grafos \cite{Stuckey2020b}:
+\begin{verbatim}
+    include "circuit.mzn";
+    %Circuito
+    constraint circuit(sig);
+\end{verbatim}
+
+De esta forma, la restricciones de posiciones diferentes se puede imponer obligando también a que todo el arreglo de vecinos sea también distinto, puesto que si todas las personas tienen vecinos distintos, pues todos ocupan un lugar distinto en la fila. Puesto que si ambas personas comparten el mismo vecino, deberían estar ocupando el mismo lugar en la fila, lo que no es deseable.\\
+\begin{verbatim}
+    %Todos los vecinos diferentes
+ constraint all_different(sig);
+\end{verbatim}
+También se garantiza que todas las personas ocupen un lugar en la fila por medio de la longitud del arreglo, dado que cada posición representa una persona en la fila.\\
+
+Por medio de esta nueva variable de decisión, la implementación de las restricciones de tipo \textit{Next to} y \textit{Separate} se tornan mucho más inmediatas, pues corresponden simplemente a imponer restricciones sobre el valor en el arreglo $sig$ de las posiciones de las personas $A$ y $B$, sin necesidad de operaciones adicionales de resta o valor absoluto:
+\begin{verbatim}
+    % Next to (A está inmediatamente antes que B OR B inmediatamente antes que A)
+    constraint forall(i in index_set_1of2(next)) (
+      sig[next[i,1]] == next[i,2] \/ sig[next[i,2]] == next[i,1]
+    );
+    
+    % Separate (A no puede ser sucesor directo de B ni viceversa)
+    constraint forall(i in index_set_1of2(separate)) (
+      sig[separate[i,1]] != separate[i,2] /\ sig[separate[i,2]] != separate[i,1]
+    );
+\end{verbatim}
+Con ello, las preferencias \textit{Next to} se reduce a obligar a que $sig[A]=B$ o $sig[B]=A$ garantizando que sean vecinos uno de otro. Y de forma equivalente, una preferencia \textit{Separate} se impone simplemente estableciendo que $sig[A]!=B$ y $sig[B]!=A$ garantizando que no sean vecinos. Se establece una restricción por cada fila de los arreglos \verb|next| y \verb|separate| igualmente por medio del arreglo de posiciones arrojado por medio de \verb|index_set_1of2()|.\\
+
+Para la restricción de distancias podemos definir una función auxiliar que indique si un nodo es alcanzable desde otro en un número máximo de pasos, de esta forma, podemos validar si entre la persona $A$ y $B$ hay un máximo de $m+1$ pasos o $m$ personas:
+\begin{verbatim}
+    % Función recursiva/desplegada para verificar alcance en K pasos
+predicate alcanzable(array[int] of var int: s, var int: actual,
+    int: destino, int: pasos_restantes) =
+  if pasos_restantes <= 0 \/ actual == 0 then
+    false
+  else
+    s[actual] == destino \/ (s[actual] != 0 /\
+        alcanzable(s, s[actual], destino, pasos_restantes - 1))
+  endif;
+\end{verbatim}
+Observe que para evitar que las soluciones empleen el nodo fantasma como un camino válido se define explícitamente que llegar o pasar por el nodo fantasma resulta en un camino falso, por lo que la restricción se cumple únicamente si se puede llegar de la persona $A$ a $B$ en máximo $m+1$ pasos sin pasar por el nodo fantasma, dado que según la formulación original del problema, las personas forman una fila y no un anillo cerrado.\\
+
+Lo único que falta es verificar que alguno de los dos caminos $A\to B$ o $B \to A$ sea posible para cada de una de las preferencias de distancia:
+\begin{verbatim}
+    constraint forall(i in index_set_1of2(distance)) (
+    alcanzable(sig, distance[i,1], distance[i,2], distance[i,3] + 1) \/
+    alcanzable(sig, distance[i,2], distance[i,1], distance[i,3] + 1)
+  );
+\end{verbatim}
+
+Finalmente, para recuperar el resultado, basta con empezar en $sig[0]$ y recorrer el arreglo juntando el orden de las personas hasta llegar al nodo con $sig[n]=0$:
+\begin{verbatim}
+    % Función recursiva: avanza por los sucesores hasta encontrar el nodo 0 (fin)
+function array[int] of string: obtener_fila(array[int] of int: s, int: actual) =
+  if s[actual] == 0 then
+    []
+  else
+    [personas[s[actual]]] ++ obtener_fila(s, s[actual])
+  endif;
+
+output [
+  "Vector sig crudo: ", show(sig), "\n",
+  "Primera persona:  ", show(personas[fix(sig[0])]), "\n",
+  "Fila ordenada:    ", show(obtener_fila(fix(sig), 0)), "\n"
+];
+\end{verbatim}
 \subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
 % Rompimiento de simetría de inversión de la fila (reflejo izquierda-derecha).
 % Explicar qué simetría se rompe, cómo se implementa y cómo se recuperarían soluciones si se deseara.
+\textit{Restricciones Redundantes:}
 
+A fin de apoyar el proceso de propagación de restricciones se decidieron implementar las siguientes restricciones redundantes al interior de la formulación del modelo en Minizinc:
+\begin{itemize}
+    \item \textbf{Distancia mínima de separate:} Para las restricciones impuestas a partir de las preferencia\textit{separate} en lugar de simplemente establecer que la distancia entre personas debe ser $\neq1$, es útil para el propagador establecer una desigualdad que divida el dominio de las variables, por lo que podemos establecer que la distancia debe ser $\geq 2$, por medio entonces de la siguiente restricción redundante:
+    \begin{verbatim}
+    % Distancia mínima de separate
+    constraint forall(i in index_set_1of2(separate)) (
+      abs(posiciones[separate[i,1]] - posiciones[separate[i,2]]) >= 2
+    );
+    \end{verbatim}
+
+    \item \textbf{Suma constante:} Dado que el arreglo solución \verb|posiciones| debe contener obligatoriamente a todas las personas, la suma de sus elementos es también un valor constante igual a $\frac{N(N+1)}{2}$, por lo que podemos establecer esta restricción para apoyar al propagador a determinar los valores faltantes por ubicar en el arreglo:
+    \begin{verbatim}
+    % Preserva la suma constante de las posiciones
+    constraint sum(posiciones) = (N * (N + 1)) div 2;
+    \end{verbatim}
+    
+    
+\end{itemize}
+
+\textit{Rompimiento de simetrías:}
+Dado que no se establecen preferencias que definan un orden específico de las personas en la foto y tan sólo se limita la distancia relativa entre pares de personas, para una solución valida $(p_1,p_2,\cdots, p_n)$ su inversión  $(p_n,p_{n-1},\cdots, p_1)$ es igualmente válida, pues invertir el orden no altera la distancia entre personas. Esto efectivamente dobla el número de solución posibles sin obtener ninguna información nueva de la mitad de ellas.\\
+
+Para romper esta simetrías se obliga que la primera persona siempre esté ubicada en la primera mitad de la fila, evitando así que el inverso de la fila sea también una solución válida, para ello obligamos al valor de $posicion[1]$ a ser menor a la mitad de la fila:
+\begin{verbatim}
+    % La persona 1 siempre se ubica en la primera mitad de la fila.
+    constraint posiciones[1] < (N + 1) / 2;
+\end{verbatim}
+Observe que se emplea el valor $(N+1)/2$ para que la restricción se acomode tanto a listas de longitud par como impar. Con ello para el siguiente ejemplo con $n=8$:
+\begin{verbatim}
+    personas = ["jose", "julian", "diana", "juan",
+        "david", "claudia", "edgar", "mario"];
+    next = [|5, 8|]; %David con Mario
+    separate = [|6, 7|]; %Claudia separada de Edgar
+    distance = [|6, 5, 2|]; %Claudia a 2 personas de David
+\end{verbatim}
+El total de soluciones pasa de 4560 a exactamente 2280, reduciendo efectivamente el número de soluciones a la mitad, manteniendo la información total, reduciendo así enormemente los costos de búsqueda de soluciones.
 \subsection{Estrategias de Búsqueda y Distribución}
 % Anotaciones de búsqueda exploradas para la asignación de posiciones.
+Se determinaron explorar dos estrategias de búsqueda para comparar el desempeño alcanzado por el solver en cuestión de nodos explorados, fallados y tiempo de búsqueda:
+\begin{itemize}
+    \item \textbf{Estrategia sencilla:} Se incluyeron las anotaciones \verb|first_fail| para escoger primero las personas con menos posiciones posibles, y \verb|indomain_min| para primero intentar ubicarlos en la posición más a la izquierda posible. Esto con el de reducir el overhead de proceso de selección de variables y valores para reducir costos para problemas de magnitud con $N$ pequeños:
+    \begin{verbatim}
+    solve :: int_search(
+    posiciones,         
+    first_fail, 
+    indomain_min, 
+    complete) 
+    satisfy;
+    \end{verbatim}
 
+    \item \textbf{Estrategia compleja:} Se emplea la anotación \verb|dom_w_deg| para que el solver identifique las personas con las restricciones más problemáticas y las ataque primero para fallar de forma temprana y reducir las ramas de búsqueda inútiles. Adicionalmente, la decisión de valores se hace con \verb|indomain_split| para dividir el dominio de posiciones posibles a la mitad, lo que es útil para las preferencias de tipo \textit{distance} pues se reduce rápidamente las cotas máximas y mínimas de las posiciones de las personas y por lo tanto la distancia entre las mismas:
+    \begin{verbatim}
+    solve :: int_search(
+    posiciones,         
+    dom_w_deg, 
+    indomain_split, 
+    complete) 
+    satisfy;
+    \end{verbatim}
+    
+\end{itemize}
 \subsection{Pruebas y Análisis Experimental}
 % Presentar pruebas con diferentes tamaños de fila y conjuntos de restricciones (ej. instancias factibles e infactibles).
+Se probaron los desempeños de los pares de estrategias de búsqueda e instancias de implementación del modelo para evaluar su desempeño y hallar la mejor aproximación al problema. Cada instancia se probó para hallar todas las soluciones al ejemplo de tamaño $n=8$:
+\begin{verbatim}
+    personas = ["jose", "julian", "diana", "juan",
+    "david", "claudia", "edgar", "mario"];
+    next = [|5, 8|]; %David con Mario
+    separate = [|6, 7|]; %Claudia separada de Edgar
+    distance = [|6, 5, 2|]; %Claudia a 2 personas de David
+\end{verbatim}
+
+Con ambas instancias se implementó rompimiento de simetrías de soluciones inversas y se ejecutó cada par \textit{instancia-estrategia} un total de 10 veces para calcular el tiempo de ejecución promedio y su desviación estándar, condensando los resultado en la Tabla \ref{tab:reunion_resultados}.
 
 \begin{table}[htbp]
     \centering
-    \begin{tabular}{lcccc}
-        \toprule
-        Instancia ($N$) & Estrategia & Tiempo (s) & Nodos explorados & Nodos fallidos \\
-        \midrule
-        Instancia base ($N=8$) & Default & -- & -- & -- \\
-        Instancia base ($N=8$) & Custom & -- & -- & -- \\
-        Instancia grande ($N=20$) & Default & -- & -- & -- \\
-        \bottomrule
-    \end{tabular}
-    \caption{Resultados experimentales para el problema de la reunión.}
+\begin{tabularx}{\textwidth}{X X X X X X}
+    \toprule
+    \textbf{Instancia} & \textbf{Estrategia} & \textbf{Tiempo (s)} & \textbf{Nodos explorados} & \textbf{Nodos fallidos} & \textbf{Profundidad Máxima} \\
+    \midrule
+    Base & Sencilla & 0.4651427 $\pm$ 0.0483 & 7979 & 1710 & 12 \\
+    Base & Compleja & 0.4496473 $\pm$ 0.0358 & 4561 & 1 & 13 \\
+    Alt & Sencilla & 1.0091062 $\pm$ 0.051 & 6893 & 1167 & 12 \\
+    Alt & Compleja & 1.0209701 $\pm$ 0.0687 & 5719 & 580 & 16 \\
+    \bottomrule
+\end{tabularx}
+    \caption{Comparación de rendimientos para distintas instancias y estrategias de búsqueda del problema de Reunión.}
     \label{tab:reunion_resultados}
 \end{table}
 
+A partir de los resultados obtenidos, como ilustra la Tabla \ref{tab:reunion_resultados} la mejor aproximación a la solución del problema la logra la implementación de la instancia base con el arreglo de posiciones y la estrategia de búsqueda compleja con la selección de variables ponderada y división del dominio. Explorando tan sólo 4561 nodos y fallando en una única instancia. De igual forma, toma el menor tiempo de ejecución promedio  de tan sólo 0.44 segundos. Esto se debe a que el problema favorece la búsqueda de las variables (personas) más problemáticas y la división de dominio permite acotar rápidamente las restricciones de tipo \textit{Distance}.\\
+
+También es interesante el hecho de que en general todas las búsquedas con la implementación alternativa en forma de anillo toma el doble del tiempo de ejecución, dado que aunque su estructura simplifica la definición de las restricciones a partir de las preferencias \textit{Next to} y \textit{Separate}, se debe incluir restricciones adicionales y funciones auxiliares tanto para las restricciones \textit{Distance} como para garantizar la integridad de camino de la solución. Estas validaciones adicionales terminan resultando en un mayor gasto de procesamiento en la búsqueda de soluciones por encima de la instancia base, que aunque requiere de operaciones auxiliares de restas y valor absoluto, el coste de estas operaciones es mucho menor a las requeridas en la implementación alternativa.\\
+
+Esta diferencia entre ambas implementaciones se hace más evidente al comparar los árboles de búsqueda resultado de la solución de un ejemplo simplificado:
+\begin{verbatim}
+    personas = ["jose", "david", "claudia", "edgar", "mario"];
+    next = [|2, 5|]; %David con Mario
+    separate = [|3, 4|]; %Claudia separada de Edgar
+    distance = [|3, 2, 2|]; %Claudia a 2 personas de David
+\end{verbatim}
+Como evidencia la Figura \ref{img_reunion_trees} las instancias base y alternativas, aún al emplear la misma estrategia de búsqueda, resultan en árboles sumamente distintos, puesto que aprovechan aspectos distintos de las características de las restricciones del sistema. En este ejemplo en particular, la instancia base logra dividir los dominios más eficientemente, resultante en un árbol con menor profundidad, a diferencia de la instancia alternativa que requiere la expansión de más nodos y ramas de búsqueda más profundas para encontrar soluciones similares.
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[Instancia Base]{
+    \includegraphics[scale=0.5]{Imagenes/tree_reunion_base.png}
+    \label{img_reunion_tree_base}
+    }
+    \subfloat[Instancia alternativa]{
+    \includegraphics[scale=0.5]{Imagenes/tree_reunion_alt.png}
+    \label{img_reunion_tree_alt}
+    }
+\caption{Árboles de búsqueda para las instancias Base y Alternativa para la solución del ejemplo simplificado con estrategia de búsqueda compleja.}
+    \label{img_reunion_trees}
+\end{figure}
 \subsection{Conclusiones del Ejercicio}
 % Discusión de los resultados y efectividad del rompimiento de simetrías.
+A partir de las implementaciones y distintas estrategias empleadas para el modelamiento y solución del problema de la reunión con programación por restricciones codificados en Minizinc, se concluyó que distintas aproximaciones al problema empleando distintas estructuras de datos resultan en la simplificación y mayor aprovechamiento de las características de los dominios y ciertas restricciones de los problemas, pero a la vez pueden añadir mayor complejidad a otros aspectos de los mismos. Por lo que es importante sopesar las ventajas y desventajas de todas las posibilidades de modelamiento del problema para emplear la de mejor desempeño, lo cual puede variar incluso según la naturaleza de las entradas a un mismo problema.\\
+
+Adicionalmente, se evidenció el gran de poder de simplificación que otorga el rompimiento de simetrías para problemas de permutaciones, en dónde el espacio total de soluciones puede llegar a reducirse a la mitad o mucho más, sin perder información relevante sobre las soluciones halladas. Esto reduce enormemente los tiempos de procesamiento casi de forma gratuita sin grandes desventajas.
