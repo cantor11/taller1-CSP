@@ -14,15 +14,20 @@ Proyecto del Taller 1 para la asignatura **Programación por Restricciones**, Es
 ## Estructura del Repositorio
 
 - `problemas/`: Modelos en MiniZinc organizados en subcarpetas por numeral del taller.
+  - `2.1/sudoku.mzn`: Modelo CSP parametrizado para el problema de Sudoku 9x9.
   - `2.2/kakuro.mzn`: Modelo CSP parametrizado para el problema de Kakuro.
   - `2.3/secuencia.mzn`: Modelo CSP parametrizado para el problema de la Secuencia Mágica.
   - `2.4/acertijo.mzn`: Modelo CSP orientado a edades para el problema del Acertijo Lógico.
+  - `2.5/reunion.mzn`: Modelo CSP para la asignación y distanciamiento en la Foto de la Reunión.
   - `2.6/rectangulo.mzn`: Modelo CSP parametrizado para el problema de Construcción de un Rectángulo.
 - `datos/`: Instancias de prueba `.dzn` organizadas por numeral de problema.
+  - `2.1/sudoku.dzn`: Instancia inicial del Sudoku ("Al Escargot").
   - `2.2/kakuro*.dzn`: Instancias de prueba para Kakuro (tableros $5\times 4$, $7\times 7$ y $8\times 8$).
   - `2.3/secuencia_n*.dzn`: Batería de 12 instancias de evaluación para Secuencia Mágica ($n \in \{1, \dots, 100\}$).
+  - `2.5/reunion.dzn`: Instancia con preferencias y distanciamientos para la reunión.
   - `2.6/rectangulo*.dzn`: Instancias de prueba para Construcción de Rectángulo ($5\times 4$, $8\times 5$ y $10\times 7$).
-- `pruebas/`: Suites automatizadas de validación, equivalencia entre solvers y pruebas de ablación.
+- `pruebas/`: Suites automatizadas de validación, equivalencia entre solvers y tablas de tiempos.
+  - `1-5/Tiempos_Pruebas.xlsx`: Registro de tiempos y métricas de resolución para Sudoku y Reunión.
   - `2.3/test_secuencia.py`: Pruebas automatizadas para Secuencia Mágica (`Gecode` y `Chuffed`).
   - `2.4/test_acertijo.py`: Pruebas automatizadas para Acertijo Lógico (`Gecode` y `Chuffed`).
 - `Informe/`: Documento LaTeX del informe modularizado por problemas.
@@ -38,6 +43,9 @@ Proyecto del Taller 1 para la asignatura **Programación por Restricciones**, Es
 Desde la raíz del repositorio (`taller1-CSP/`):
 
 ```bash
+# Punto 2.1: Sudoku (resolución con instancia .dzn)
+minizinc --solver gecode problemas/2.1/sudoku.mzn datos/2.1/sudoku.dzn
+
 # Punto 2.2: Kakuro (resolución con instancia .dzn)
 minizinc --solver gecode problemas/2.2/kakuro.mzn datos/2.2/kakuro1.dzn
 
@@ -46,6 +54,9 @@ minizinc --solver gecode -a problemas/2.3/secuencia.mzn datos/2.3/secuencia_n4.d
 
 # Punto 2.4: Acertijo Lógico (enumeración completa sin parámetros externos)
 minizinc --solver gecode -a problemas/2.4/acertijo.mzn
+
+# Punto 2.5: Reunión (resolución con instancia .dzn)
+minizinc --solver gecode problemas/2.5/reunion.mzn datos/2.5/reunion.dzn
 
 # Punto 2.6: Construcción de un Rectángulo (resolución con instancia .dzn)
 minizinc --solver gecode problemas/2.6/rectangulo.mzn datos/2.6/rectangulo1.dzn
