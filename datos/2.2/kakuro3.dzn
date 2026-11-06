@@ -1,0 +1,62 @@
+% =============================================================================
+% Taller 1 - Problema 2.2: Kakuro - Tablero 3 (Adicional Grande 8x8)
+% Dimension del area jugable: 8 filas x 8 columnas (36 casillas blancas)
+% =============================================================================
+
+F = 8;
+C = 8;
+num_h = 16;
+num_v = 16;
+
+usar_alldifferent = true;
+usar_redundantes = true;
+
+% Solucion unica de referencia:
+%  1  3  .  .  8  9  .  .
+%  2  1  4  .  6  8  9  .
+%  .  4  2  1  .  7  8  9
+%  .  .  3  2  1  .  6  8
+%  8  9  .  4  3  1  .  .
+%  7  8  9  .  2  4  1  .
+%  .  6  8  9  .  3  2  1
+%  .  .  7  8  .  .  4  3
+
+% Pistas horizontales: | fila, col_inicio, col_fin, suma_objetivo |
+pistas_h = [|
+    1, 1, 2,  4 |
+    1, 5, 6, 17 |
+    2, 1, 3,  7 |
+    2, 5, 7, 23 |
+    3, 2, 4,  7 |
+    3, 6, 8, 24 |
+    4, 3, 5,  6 |
+    4, 7, 8, 14 |
+    5, 1, 2, 17 |
+    5, 4, 6,  8 |
+    6, 1, 3, 24 |
+    6, 5, 7,  7 |
+    7, 2, 4, 23 |
+    7, 6, 8,  6 |
+    8, 3, 4, 15 |
+    8, 7, 8,  7
+|];
+
+% Pistas verticales: | columna, fila_inicio, fila_fin, suma_objetivo |
+pistas_v = [|
+    1, 1, 2,  3 |
+    1, 5, 6, 15 |
+    2, 1, 3,  8 |
+    2, 5, 7, 23 |
+    3, 2, 4,  9 |
+    3, 6, 8, 24 |
+    4, 3, 5,  7 |
+    4, 7, 8, 17 |
+    5, 1, 2, 14 |
+    5, 4, 6,  6 |
+    6, 1, 3, 24 |
+    6, 5, 7,  8 |
+    7, 2, 4, 23 |
+    7, 6, 8,  7 |
+    8, 3, 4, 17 |
+    8, 7, 8,  4
+|];

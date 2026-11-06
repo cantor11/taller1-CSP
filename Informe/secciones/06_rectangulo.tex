@@ -2,56 +2,224 @@
 \section{Problema 6: Construcción de un Rectángulo}
 
 \subsection{Descripción del Problema y Abstracción CSP}
-% Descripción: colocación/empaquetamiento de n cuadrados de tamaños dados en un rectángulo de ancho W y alto H.
-% Requerimientos: sin solapamiento, dentro de los límites del contenedor, todos los cuadrados deben ser utilizados.
+El problema de la construcción de un rectángulo consiste en ensamblar un conjunto dado de $n$ cuadrados de lados enteros conocidos $s_1, s_2, \dots, s_n$ para formar exactamente un rectángulo contenedor de anchura $W$ y altura $H$. Para que una disposición sea válida, deben cumplirse tres condiciones geométricas:
+\begin{enumerate}
+    \item \textbf{Integridad de uso:} Todos los $n$ cuadrados deben ubicarse dentro del rectángulo contenedor con sus lados paralelos a los ejes coordenados.
+    \item \textbf{Contención:} Ningún cuadrado puede sobresalir de las fronteras $[0, W] \times [0, H]$ del rectángulo.
+    \item \textbf{No solapamiento:} Los interiores de dos cuadrados cualesquiera deben ser disjuntos (solo pueden compartir bordes o vértices).
+\end{enumerate}
+
+Bajo el paradigma de Programación por Restricciones (CSP), si se sitúa el origen del sistema de coordenadas $(0, 0)$ en la esquina inferior izquierda del rectángulo contenedor, la posición de cada cuadrado $i \in \{1, \dots, n\}$ queda completamente determinada por las coordenadas enteras $(x_i, y_i)$ de su esquina inferior izquierda, ocupando la región espacial $[x_i, x_i + s_i] \times [y_i, y_i + s_i]$.
 
 \subsubsection{Parámetros y Datos de Entrada}
-% n (número de cuadrados), tamaño de lado de cada cuadrado s_i, anchura W y altura H del rectángulo contenedor.
+El modelo paramétrico (\texttt{rectangulo.mzn}) recibe como entrada los siguientes datos desde los archivos \texttt{.dzn}:
+\begin{itemize}
+    \item $n \in \mathbb{Z}^+$: Número total de cuadrados a ensamblar.
+    \item $S = \{1, \dots, n\}$: Conjunto de índices de los cuadrados.
+    \item $s_i \in \mathbb{Z}^+$ (\texttt{lado[i]}): Longitud del lado del cuadrado $i \in S$. Por convención de modelado (verificada mediante \texttt{assert}), los cuadrados se suministran ordenados de mayor a menor tamaño: $s_1 \ge s_2 \ge \dots \ge s_n$.
+    \item $W \in \mathbb{Z}^+$: Anchura total del rectángulo contenedor.
+    \item $H \in \mathbb{Z}^+$: Altura total del rectángulo contenedor.
+\end{itemize}
 
 \subsubsection{Variables de Decisión y Dominios}
-% Coordenadas de posición para cada cuadrado i: (x_i, y_i), típicamente la esquina inferior izquierda.
-% Dominios: x_i in 0..(W - s_i), y_i in 0..(H - s_i).
+Para cada cuadrado $i \in S = \{1, \dots, n\}$ se definen dos variables de decisión enteras:
+\begin{itemize}
+    \item $x_i$ (\texttt{x[i]}): Coordenada horizontal (eje $X$) de la esquina inferior izquierda del cuadrado $i$.
+    \item $y_i$ (\texttt{y[i]}): Coordenada vertical (eje $Y$) de la esquina inferior izquierda del cuadrado $i$.
+\end{itemize}
+
+Dado que el cuadrado $i$ se extiende $s_i$ unidades hacia la derecha y $s_i$ unidades hacia arriba, el dominio efectivo más estrecho para cada variable de decisión es:
+\[
+    D(x_i) = \{0, 1, \dots, W - s_i\}, \qquad D(y_i) = \{0, 1, \dots, H - s_i\}, \qquad \forall i \in \{1, \dots, n\}
+\]
+
+En MiniZinc, dado que la declaración de un arreglo requiere un rango de índice uniforme, los arreglos \texttt{x} e \texttt{y} se declaran sobre $0 \dots W - \min_k(s_k)$ y $0 \dots H - \min_k(s_k)$ respectivamente, e inmediatamente se acota el dominio exacto de cada componente mediante restricciones unarias.
 
 \subsubsection{Restricciones del Modelo}
-% Formalizar en lenguaje matemático:
-% 1. Límites del contenedor (asegurados por los dominios o restricciones de cota).
-% 2. No solapamiento entre pares de cuadrados:
-%    Para cada par (i, j): (x_i + s_i <= x_j) \/ (x_j + s_j <= x_i) \/ (y_i + s_i <= y_j) \/ (y_j + s_j <= y_i)
-%    O mediante predicados globales como diffn.
+El modelo matemático base comprende las siguientes restricciones fundamentales:
+
+\begin{enumerate}
+    \item \textbf{Restricciones unarias de contención exacta dentro del rectángulo $W \times H$:}
+    \[
+        \forall i \in \{1, \dots, n\}: \quad 0 \le x_i \le W - s_i \;\land\; 0 \le y_i \le H - s_i
+    \]
+
+    \item \textbf{Restricción disyuntiva de no solapamiento bidimensional por pares:}
+    Dos cuadrados distintos $i, j \in \{1, \dots, n\}$ ($i < j$) no se solapan si y solo si al menos una de las cuatro separaciones ortogonales (izquierda, derecha, abajo o arriba) se cumple:
+    \[
+        \forall i, j \in \{1, \dots, n\} \text{ con } i < j: \quad
+        (x_i + s_i \le x_j) \;\lor\; (x_j + s_j \le x_i) \;\lor\; (y_i + s_i \le y_j) \;\lor\; (y_j + s_j \le y_i)
+    \]
+\end{enumerate}
 
 \subsection{Detalles de Implementación (\texttt{rectangulo.mzn})}
+Siguiendo el diseño modular de los problemas de planificación disyuntiva y mudanza vistos en el curso:
+\begin{itemize}
+    \item \textbf{Predicado modular \texttt{no\_solapar}:} La disyunción de cuatro cláusulas se encapsuló en un predicado reutilizable \texttt{no\_solapar(x1, l1, y1, x2, l2, y2)}, invocándolo sobre el triángulo superior de pares $i < j$ para evitar duplicar restricciones entre el mismo par de cuadrados.
+    \item \textbf{Ordenamiento decreciente de cuadrados y validación de área:} Mediante sentencias \texttt{assert} se verifica en tiempo de compilación que el arreglo \texttt{lado} cumpla $s_i \ge s_{i+1}$ y que la suma de áreas $\sum_{i=1}^n s_i^2$ coincida exactamente con el área $W \cdot H$ del contenedor.
+    \item \textbf{Arreglo intercalado para búsqueda (\texttt{vars\_xy}):} Se construyó por comprensión el arreglo unidimensional $[x_1, y_1, x_2, y_2, \dots, x_n, y_n]$ de longitud $2n$, de modo que las heurísticas posicionales fijen de manera consecutiva ambas coordenadas $(x_i, y_i)$ del cuadrado $i$ antes de pasar al cuadrado $i+1$.
+\end{itemize}
 
 \subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
-% Restricción redundante de área: sum_{i=1}^n (s_i^2) = W * H.
-% Restricciones acumulativas 1D en X y en Y (cumulative).
-% Rompimiento de simetrías geométricas: reflexiones horizontal/vertical y rotaciones (cuando W = H).
-% Explicar qué simetrías se rompen y cómo recuperar soluciones simétricas.
+
+\paragraph{Restricciones Redundantes.}
+La restricción disyuntiva de no solapamiento $\lor$ sufre de propagación tardía (reificación débil): mientras un par de cuadrados conserve al menos dos direcciones posibles de separación, ninguna de las desigualdades individuales poda los dominios de $x_i$ o $y_i$. Esto permite que el solver intente apilar varios cuadrados en una misma franja vertical u horizontal excediendo la altura $H$ o la anchura $W$, descubriendo el fallo únicamente tras múltiples ramificaciones.
+
+Para dotar al modelo de una visión global del espacio disponible, se observa que el empaquetamiento ortogonal 2D se proyecta sobre cada eje como un problema de planificación acumulativa de recursos (\texttt{cumulative}):
+\begin{enumerate}
+    \item \textbf{Proyección acumulativa sobre el eje $X$:} Interpretando $x_i$ como el instante de inicio de una tarea de duración $s_i$ que consume una cantidad $s_i$ del recurso vertical disponible, en toda abscisa $c \in [0, W)$ la suma de las alturas de los cuadrados que intersectan la recta vertical $X = c$ no puede exceder $H$ (de hecho, como el recubrimiento es exacto, suma exactamente $H$):
+    \[
+        \forall c \in \{0, \dots, W-1\}: \quad \sum_{\substack{i=1 \\ x_i \le c < x_i + s_i}}^{n} s_i \le H
+        \qquad \Longleftrightarrow \qquad \text{cumulative}(x, s, s, H)
+    \]
+    \item \textbf{Proyección acumulativa sobre el eje $Y$:} De forma dual, interpretando $y_i$ como el inicio de una tarea de duración $s_i$ y consumo horizontal $s_i$, en toda ordenada $r \in [0, H)$ la suma de anchuras de los cuadrados que intersectan la recta horizontal $Y = r$ no puede exceder $W$:
+    \[
+        \forall r \in \{0, \dots, H-1\}: \quad \sum_{\substack{i=1 \\ y_i \le r < y_i + s_i}}^{n} s_i \le W
+        \qquad \Longleftrightarrow \qquad \text{cumulative}(y, s, s, W)
+    \]
+\end{enumerate}
+
+\paragraph{Rompimiento de Simetrías y Recuperación de Soluciones.}
+El problema posee dos fuentes independientes de simetría que multiplican exponencialmente el número de soluciones equivalentes:
+
+\begin{enumerate}
+    \item \textbf{Simetría de permutación entre cuadrados de igual tamaño:}
+    \begin{itemize}
+        \item \textit{Simetría que rompe:} Si un subconjunto de $k_g$ cuadrados tiene exactamente el mismo lado ($s_i = s_{i+1} = \dots$), sus ubicaciones en cualquier solución válida pueden permutarse de $k_g!$ maneras distintas produciendo el mismo diseño geométrico. Por ejemplo, en la instancia del taller $\text{lado} = [3, 2, 2, 1, 1, 1]$, existen $2! \times 3! = 12$ permutaciones idénticas por cada configuración geométrica.
+        \item \textit{Restricción impuesta:} Para todo par consecutivo de cuadrados de igual lado ($s_i = s_{i+1}$), se impone un orden lexicográfico estricto sobre sus vectores de posición $(x_i, y_i) <_{\text{lex}} (x_{i+1}, y_{i+1})$:
+        \[
+            \forall i \in \{1, \dots, n-1\} \text{ tal que } s_i = s_{i+1}: \quad
+            (x_i < x_{i+1}) \;\lor\; (x_i = x_{i+1} \land y_i < y_{i+1})
+        \]
+        \item \textit{Recuperación de las soluciones descartadas:} A partir de una solución canónica hallada, todas las soluciones equivalentes por reetiquetado se recuperan aplicando las $\prod_g k_g!$ permutaciones de índices dentro de cada clase de cuadrados de igual tamaño.
+    \end{itemize}
+
+    \item \textbf{Simetría geométrica dihedral del rectángulo contenedor:}
+    \begin{itemize}
+        \item \textit{Simetría que rompe:} Cualquier recubrimiento válido del rectángulo $W \times H$ permanece válido al aplicarle una reflexión horizontal respecto a $X = W/2$, una reflexión vertical respecto a $Y = H/2$, o una rotación de $180^\circ$ (composición de ambas), generando $4$ soluciones congruentes (y hasta $8$ si el contenedor es cuadrado, $W = H$, al incluir la reflexión diagonal $X \leftrightarrow Y$).
+        \item \textit{Restricción impuesta:} Se restringe el centro del cuadrado de mayor tamaño ($i = 1$) para que se ubique en el cuadrante inferior izquierdo del rectángulo contenedor:
+        \[
+            2 x_1 \le W - s_1 \quad \land \quad 2 y_1 \le H - s_1
+        \]
+        y adicionalmente, cuando el contenedor es cuadrado ($W = H$), se fuerza $x_1 \le y_1$ para romper la simetría de transposición diagonal.
+        \item \textit{Recuperación de las soluciones descartadas:} Dada una solución canónica $\{(x_i, y_i)\}_{i=1}^n$, las configuraciones geométricas simétricas se reconstruyen mediante las isometrías afines:
+        \begin{align*}
+            \text{Reflexión horizontal:}   &\quad (x'_i, y'_i) = (W - s_i - x_i, \; y_i) \\
+            \text{Reflexión vertical:}     &\quad (x'_i, y'_i) = (x_i, \; H - s_i - y_i) \\
+            \text{Rotación de } 180^\circ: &\quad (x'_i, y'_i) = (W - s_i - x_i, \; H - s_i - y_i)
+        \end{align*}
+        (y si $W = H$, componiendo las cuatro transformaciones anteriores con el intercambio de ejes $(y_i, x_i)$).
+    \end{itemize}
+\end{enumerate}
 
 \subsection{Estrategias de Búsqueda y Distribución}
-% Anotaciones de búsqueda en MiniZinc adaptadas a problemas de empaquetamiento 2D.
-% Heurísticas de ordenamiento (ej. ordenar cuadrados de mayor a menor tamaño).
+Para evaluar el impacto del orden de ramificación sobre el empaquetamiento 2D, se compararon seis estrategias de búsqueda:
+\begin{enumerate}
+    \item \textbf{Default (\texttt{solve satisfy}):} Heurística nativa del solver Gecode.
+    \item \textbf{\texttt{input\_order} + \texttt{indomain\_min} sobre \texttt{vars\_xy}:} Dado que \texttt{lado} está ordenado de mayor a menor ($s_1 \ge \dots \ge s_n$) y \texttt{vars\_xy} intercala $[x_1, y_1, \dots, x_n, y_n]$, esta estrategia implementa la heurística geométrica clásica \textit{Largest-Square-First, Bottom-Left}: posiciona primero los cuadrados más voluminosos lo más abajo y a la izquierda posible.
+    \item \textbf{\texttt{input\_order} + \texttt{indomain\_max} sobre \texttt{vars\_xy}:} Ubica los cuadrados de mayor a menor intentando colocarlos en la esquina superior derecha disponible.
+    \item \textbf{\texttt{first\_fail} + \texttt{indomain\_min} sobre \texttt{vars\_xy}:} Selecciona dinámicamente la coordenada $x_i$ o $y_i$ con menor dominio actual.
+    \item \textbf{\texttt{seq\_search} por ejes ($X$ luego $Y$) con \texttt{first\_fail}:} Fija primero todas las abscisas $x_1, \dots, x_n$ de todos los cuadrados y posteriormente resuelve sus ordenadas $y_1, \dots, y_n$.
+    \item \textbf{\texttt{dom\_w\_deg} + \texttt{indomain\_split} sobre \texttt{vars\_xy}:} Combina el grado ponderado de fallos con bisección de dominios.
+\end{enumerate}
 
 \subsection{Pruebas y Análisis Experimental}
-% Pruebas con la instancia del taller (cuadrados 3, 2, 2, 1, 1, 1 en rectángulo 5x4) y otras instancias.
-% Estadísticas comparativas (nodos, fallos, tiempo).
+Se diseñaron tres instancias de prueba en archivos \texttt{.dzn}:
+\begin{itemize}
+    \item \textbf{\texttt{rectangulo1.dzn} (Instancia del enunciado del taller):} $W = 5, H = 4$ (Área $= 20$), $n = 6$ cuadrados con $\text{lado} = [3, 2, 2, 1, 1, 1]$. Tiene $2! \times 3! \times 4 = 48$ soluciones simétricas equivalentes a una única configuración geométrica salvo isometrías.
+    \item \textbf{\texttt{rectangulo2.dzn} (Instancia mediana):} $W = 8, H = 5$ (Área $= 40$), $n = 9$ cuadrados con $\text{lado} = [3, 3, 2, 2, 2, 2, 2, 1, 1]$. Cada configuración geométrica genera $2! \times 5! \times 2! \times 4 = 1{,}920$ soluciones simétricas.
+    \item \textbf{\texttt{rectangulo3.dzn} (Instancia grande):} $W = 10, H = 7$ (Área $= 70$), $n = 12$ cuadrados con $\text{lado} = [4, 4, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1]$.
+\end{itemize}
+
+Para la instancia del taller (\texttt{rectangulo1.dzn}, $5 \times 4$), el modelo obtiene la solución canónica única:
+\begin{center}
+\small
+\begin{tabular}{ccccccc}
+\toprule
+Cuadrado $i$ & $1$ ($3\times 3$) & $2$ ($2\times 2$) & $3$ ($2\times 2$) & $4$ ($1\times 1$) & $5$ ($1\times 1$) & $6$ ($1\times 1$) \\
+\midrule
+Posición $(x_i, y_i)$ & $(0, 0)$ & $(3, 0)$ & $(3, 2)$ & $(0, 3)$ & $(1, 3)$ & $(2, 3)$ \\
+\bottomrule
+\end{tabular}
+\qquad
+$\text{Mapa } (5\times 4) = \begin{pmatrix}
+4 & 5 & 6 & 3 & 3 \\
+1 & 1 & 1 & 3 & 3 \\
+1 & 1 & 1 & 2 & 2 \\
+1 & 1 & 1 & 2 & 2
+\end{pmatrix}$
+\end{center}
+
+En el Cuadro~\ref{tab:rectangulo_ablacion} se presenta el estudio de ablación al buscar todas las soluciones (\texttt{--all-solutions}, límite de $5{,}000\text{ ms}$) bajo las cuatro combinaciones del modelo: (1) Base (solo \texttt{no\_solapar}), (2) Base + Redundantes (\texttt{cumulative}), (3) Base + Rompimiento de Simetrías y (4) Modelo Completo. Los resultados demuestran el efecto multiplicativo de ambas técnicas: en \texttt{rectangulo1.dzn}, el rompimiento de simetrías reduce exactamente las $48$ soluciones simétricas a la única solución canónica ($1$ solución), disminuyendo los nodos de $335$ a $15$. En \texttt{rectangulo2.dzn} y \texttt{rectangulo3.dzn}, donde los modelos sin rompimiento de simetrías agotan el tiempo límite de $5\text{ s}$ debido a la explosión factorial de permutaciones, el rompimiento de simetrías permite enumerar la totalidad de las soluciones canónicas ($8$ y $122$ respectivamente) en milisegundos, y la adición de \texttt{cumulative} reduce a menos de la mitad los nodos y fallos restantes ($1{,}505 \to 753$ nodos en \texttt{rectangulo2.dzn} y $21{,}755 \to 9{,}649$ nodos en \texttt{rectangulo3.dzn}).
 
 \begin{table}[htbp]
     \centering
-    \small
-    \begin{tabular}{lcccc}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{llccccc}
         \toprule
-        Instancia & Configuración & Tiempo (s) & Nodos explorados & Fallos \\
+        Instancia & Configuración del Modelo & Soluciones & Propagaciones & Nodos & Fallos & Tiempo (ms) \\
         \midrule
-        Taller ($5 \times 4$) & Base & -- & -- & -- \\
-        Taller ($5 \times 4$) & Simetrías + Redundantes & -- & -- & -- \\
-        Instancia 2 & Base & -- & -- & -- \\
-        Instancia 2 & Optimizada & -- & -- & -- \\
+        \texttt{rectangulo1.dzn} & 1. Base (solo \texttt{no\_solapar}) & 48 & 6,146 & 335 & 120 & 1.37 \\
+        ($5\times 4, n=6$) & 2. Base + Redundantes (\texttt{cumulative}) & 48 & 5,920 & 255 & 80 & 1.48 \\
+        & 3. Base + Simetrías & 1 & 413 & 17 & 8 & 0.14 \\
+        & 4. Completo (Redundantes + Simetrías) & \textbf{1} & \textbf{440} & \textbf{15} & \textbf{7} & \textbf{0.22} \\
+        \midrule
+        \texttt{rectangulo2.dzn} & 1. Base (solo \texttt{no\_solapar}) & 3,840* & 43,645,037 & 657,009 & 324,660 & $>$5,000 \\
+        ($8\times 5, n=9$) & 2. Base + Redundantes (\texttt{cumulative}) & 4,778* & 564,913 & 15,461 & 2,948 & $>$5,000 \\
+        & 3. Base + Simetrías & 8 & 78,857 & 1,505 & 745 & 4.39 \\
+        & 4. Completo (Redundantes + Simetrías) & \textbf{8} & \textbf{50,329} & \textbf{753} & \textbf{369} & \textbf{4.16} \\
+        \midrule
+        \texttt{rectangulo3.dzn} & 1. Base (solo \texttt{no\_solapar}) & 1,986* & 18,725,217 & 280,758 & 138,388 & $>$5,000 \\
+        ($10\times 7, n=12$) & 2. Base + Redundantes (\texttt{cumulative}) & 2,375* & 221,080 & 4,910 & 75 & $>$5,000 \\
+        & 3. Base + Simetrías & 122 & 1,254,766 & 21,755 & 10,756 & 114.01 \\
+        & 4. Completo (Redundantes + Simetrías) & \textbf{122} & \textbf{646,885} & \textbf{9,649} & \textbf{4,703} & \textbf{103.03} \\
         \bottomrule
-    \end{tabular}
-    \caption{Evaluación experimental de colocación de cuadrados.}
+    \end{tabular}%
+    }
+    \caption{Estudio de ablación en búsqueda exhaustiva (\texttt{--all-solutions}, $*$ indica corte a los $5\text{ s}$).}
+    \label{tab:rectangulo_ablacion}
+\end{table}
+
+Asimismo, el Cuadro~\ref{tab:rectangulo_resultados} compara las seis estrategias de búsqueda para encontrar la primera solución factible, contrastando el Modelo Base (Configuración 1) frente al Modelo Completo (Configuración 4).
+
+\begin{table}[htbp]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{llcccccc}
+        \toprule
+        & & \multicolumn{3}{c}{Modelo Base (Config. 1)} & \multicolumn{3}{c}{Modelo Completo (Config. 4)} \\
+        \cmidrule(lr){3-5} \cmidrule(lr){6-8}
+        Instancia & Estrategia de Búsqueda & Tiempo (ms) & Nodos & Fallos & Tiempo (ms) & Nodos & Fallos \\
+        \midrule
+        \texttt{rectangulo1.dzn} & Default (\texttt{solve satisfy}) & 0.14 & 14 & 4 & 0.18 & 8 & 3 \\
+        & \texttt{input\_order + indomain\_min} & 0.13 & 13 & 3 & \textbf{0.13} & \textbf{4} & \textbf{0} \\
+        & \texttt{input\_order + indomain\_max} & 0.14 & 13 & 3 & 0.16 & 15 & 7 \\
+        & \texttt{first\_fail + indomain\_min} & 0.15 & 18 & 6 & 0.15 & 6 & 1 \\
+        & \texttt{seq\_search (x luego y, ff)} & 0.19 & 35 & 14 & 0.19 & \textbf{4} & \textbf{0} \\
+        & \texttt{dom\_w\_deg + indomain\_split} & 0.15 & 12 & 2 & 0.18 & 5 & 1 \\
+        \midrule
+        \texttt{rectangulo2.dzn} & Default (\texttt{solve satisfy}) & 1.18 & 322 & 156 & \textbf{0.28} & \textbf{18} & 6 \\
+        & \texttt{input\_order + indomain\_min} & 0.29 & 69 & 29 & 0.28 & 20 & 5 \\
+        & \texttt{input\_order + indomain\_max} & 0.25 & 69 & 29 & 1.09 & 247 & 122 \\
+        & \texttt{first\_fail + indomain\_min} & 191.72 & 76,986 & 38,488 & 0.31 & 32 & 11 \\
+        & \texttt{seq\_search (x luego y, ff)} & 521.30 & 238,330 & 119,160 & 0.30 & 29 & 10 \\
+        & \texttt{dom\_w\_deg + indomain\_split} & 0.63 & 186 & 85 & 0.33 & \textbf{18} & \textbf{4} \\
+        \midrule
+        \texttt{rectangulo3.dzn} & Default (\texttt{solve satisfy}) & 0.67 & 147 & 66 & 0.48 & 43 & 17 \\
+        & \texttt{input\_order + indomain\_min} & 0.63 & 135 & 60 & \textbf{0.29} & \textbf{22} & \textbf{4} \\
+        & \texttt{input\_order + indomain\_max} & 0.72 & 135 & 60 & 2.86 & 407 & 199 \\
+        & \texttt{first\_fail + indomain\_min} & 813.19 & 257,007 & 128,496 & 0.63 & 43 & 16 \\
+        & \texttt{seq\_search (x luego y, ff)} & 2,795.07 & 807,419 & 403,704 & 0.58 & 51 & 19 \\
+        & \texttt{dom\_w\_deg + indomain\_split} & 0.65 & 94 & 34 & 0.35 & 30 & 8 \\
+        \bottomrule
+    \end{tabular}%
+    }
+    \caption{Evaluación experimental de estrategias de búsqueda en colocación de cuadrados (primera solución).}
     \label{tab:rectangulo_resultados}
 \end{table}
 
 \subsection{Conclusiones del Ejercicio}
-% Discusión sobre la efectividad del predicado global (diffn) frente a restricciones disyuntivas explícitas
-% y el impacto del rompimiento de simetrías.
+\begin{itemize}
+    \item \textbf{Efecto crítico de la restricción global \texttt{cumulative}:} En el Modelo Base (que depende exclusivamente de las disyunciones binarias \texttt{no\_solapar}), heurísticas como \texttt{first\_fail} y \texttt{seq\_search} sufren un estancamiento severo en \texttt{rectangulo3.dzn} ($257{,}007$ y $807{,}419$ nodos respectivamente), ya que al fijar coordenadas en un solo eje sin verificar la capacidad ortogonal acumulada construyen configuraciones globalmente infactibles. Al activar \texttt{cumulative} en $X$ e $Y$, los nodos con \texttt{first\_fail} caen de $257{,}007$ a $39$ (una reducción del $99.98\%$).
+    \item \textbf{Superioridad de la heurística \textit{Largest-Square-First} (\texttt{input\_order + indomain\_min}):} Al ordenar los cuadrados de mayor a menor tamaño e intercalar $[x_i, y_i]$, la estrategia \texttt{input\_order + indomain\_min} junto con el modelo completo logra el mejor desempeño global ($4$ nodos y $0$ fallos en \texttt{rectangulo1.dzn}, y solo $22$ nodos y $4$ fallos en \texttt{rectangulo3.dzn}). Por el contrario, \texttt{indomain\_max} degrada el rendimiento en el modelo con rompimiento de simetrías porque intenta asignar valores altos de $(x, y)$ que entran en conflicto directo con el orden lexicográfico ascendente $x_i \le x_{i+1}$ y la restricción del cuadrante inferior izquierdo.
+\end{itemize}

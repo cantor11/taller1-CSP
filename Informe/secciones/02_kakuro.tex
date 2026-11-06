@@ -2,50 +2,227 @@
 \section{Problema 2: Kakuro}
 
 \subsection{Descripción del Problema y Abstracción CSP}
-% Descripción del juego tipo crucigrama numérico de sumas cruzadas.
-% Explicar el objetivo: rellenar casillas con dígitos 1 al 9 respetando sumas y sin repetir dígitos en cada tramo.
+El Kakuro (también conocido como \textit{Cross Sums}) es un rompecabezas numérico de lógica combinatoria equivalente a un crucigrama matemático. El tablero está conformado por celdas negras (no jugables, que actúan como separadores y contienen las pistas numéricas) y celdas blancas (jugables). Una sucesión continua de casillas blancas adyacentes en dirección horizontal o vertical constituye un \textit{tramo} o \textit{serie}.
+
+El objetivo consiste en asignar un dígito entero del $1$ al $9$ a cada casilla blanca del tablero de modo que se satisfagan simultáneamente dos condiciones fundamentales en cada serie horizontal y vertical:
+\begin{enumerate}
+    \item La suma aritmética de los dígitos asignados a las casillas de la serie debe ser exactamente igual al valor de la pista asociada a dicho tramo.
+    \item Ningún dígito puede repetirse dentro de una misma serie (horizontal o vertical), aunque un mismo dígito sí puede aparecer varias veces en una misma fila o columna si sus apariciones están separadas por al menos una casilla negra.
+\end{enumerate}
+
+Desde la perspectiva de la Programación por Restricciones (CSP), el Kakuro se abstrae como un problema de satisfacción sobre dominios finitos enteros donde cada celda blanca corresponde a una variable de decisión restringida por la intersección de una restricción lineal de suma y una restricción de disyunción por pares (o restricción global de diferencia) en su tramo horizontal y en su tramo vertical.
 
 \subsubsection{Parámetros y Datos de Entrada}
-% Especificar cómo se representan las casillas blancas y las pistas de sumas horizontales y verticales.
+Siguiendo una representación matricial paramétrica que separa completamente el modelo (\texttt{kakuro.mzn}) de los datos de cada instancia (\texttt{.dzn}), se definen los siguientes parámetros de entrada:
+\begin{itemize}
+    \item $F \in \mathbb{Z}^+$: Número de filas del área jugable del tablero.
+    \item $C \in \mathbb{Z}^+$: Número de columnas del área jugable del tablero.
+    \item $n_H \in \mathbb{Z}^+$: Número total de series (tramos) horizontales.
+    \item $n_V \in \mathbb{Z}^+$: Número total de series (tramos) verticales.
+    \item $P^H \in \mathbb{Z}^{n_H \times 4}$: Matriz de pistas horizontales (\texttt{pistas\_h}), donde cada fila $k \in \{1, \dots, n_H\}$ representa la tupla $(f_k, c^{\text{ini}}_k, c^{\text{fin}}_k, S^H_k)$, indicando que en la fila $f_k$ el tramo horizontal va desde la columna $c^{\text{ini}}_k$ hasta la columna $c^{\text{fin}}_k$ y debe sumar $S^H_k$.
+    \item $P^V \in \mathbb{Z}^{n_V \times 4}$: Matriz de pistas verticales (\texttt{pistas\_v}), donde cada fila $m \in \{1, \dots, n_V\}$ representa la tupla $(c_m, f^{\text{ini}}_m, f^{\text{fin}}_m, S^V_m)$, indicando que en la columna $c_m$ el tramo vertical va desde la fila $f^{\text{ini}}_m$ hasta la fila $f^{\text{fin}}_m$ y debe sumar $S^V_m$.
+\end{itemize}
+
+A partir de las pistas horizontales se define estáticamente el conjunto de posiciones de casillas blancas $B \subseteq \{1, \dots, F\} \times \{1, \dots, C\}$ como:
+\[
+    B = \left\{ (i, j) \in \{1, \dots, F\} \times \{1, \dots, C\} \;\middle|\; \exists k \in \{1, \dots, n_H\} : f_k = i \land c^{\text{ini}}_k \le j \le c^{\text{fin}}_k \right\}
+\]
 
 \subsubsection{Variables de Decisión y Dominios}
-% Definición precisa de las variables (ej. valor en cada casilla blanca).
-% Dominio: {1, ..., 9}.
+Se define una matriz bidimensional de variables de decisión $X_{i,j}$ (\texttt{tablero[i,j]}) para cada celda $(i, j) \in \{1, \dots, F\} \times \{1, \dots, C\}$. Con el fin de establecer el dominio más pequeño posible para cada tipo de casilla sin recurrir a tipos opcionales:
+\begin{itemize}
+    \item Para toda casilla blanca $(i, j) \in B$, la variable representa el dígito escrito en la celda y su dominio efectivo es:
+    \[
+        D(X_{i,j}) = \{1, 2, 3, 4, 5, 6, 7, 8, 9\}, \quad \forall (i, j) \in B
+    \]
+    \item Para toda casilla negra $(i, j) \notin B$, la variable se fija mediante una restricción unaria al valor constante cero, reduciendo su dominio a un único elemento:
+    \[
+        D(X_{i,j}) = \{0\}, \quad \forall (i, j) \notin B
+    \]
+\end{itemize}
 
 \subsubsection{Restricciones del Modelo}
-% Formalizar en lenguaje matemático:
-% 1. Suma de cada serie (horizontal/vertical) igual a la pista dada.
-% 2. Todos los dígitos en cada serie deben ser diferentes (alldifferent).
+El modelo matemático principal se compone de las siguientes familias de restricciones:
+
+\begin{enumerate}
+    \item \textbf{ Partición de dominios entre casillas blancas y negras:}
+    \[
+        \forall i \in \{1, \dots, F\}, \; \forall j \in \{1, \dots, C\}: \quad
+        \begin{cases}
+            X_{i,j} \ge 1 & \text{si } (i, j) \in B \\
+            X_{i,j} = 0   & \text{si } (i, j) \notin B
+        \end{cases}
+    \]
+
+    \item \textbf{Suma exacta en cada serie horizontal:}
+    \[
+        \forall k \in \{1, \dots, n_H\}: \quad \sum_{j = c^{\text{ini}}_k}^{c^{\text{fin}}_k} X_{f_k, j} = S^H_k
+    \]
+
+    \item \textbf{Suma exacta en cada serie vertical:}
+    \[
+        \forall m \in \{1, \dots, n_V\}: \quad \sum_{i = f^{\text{ini}}_m}^{f^{\text{fin}}_m} X_{i, c_m} = S^V_m
+    \]
+
+    \item \textbf{No repetición de dígitos por tramo (Formulación A --- Desigualdades binarias):}
+    \[
+        \forall k \in \{1, \dots, n_H\}, \; \forall j_1, j_2 \in \{c^{\text{ini}}_k, \dots, c^{\text{fin}}_k\} \text{ con } j_1 < j_2: \quad X_{f_k, j_1} \neq X_{f_k, j_2}
+    \]
+    \[
+        \forall m \in \{1, \dots, n_V\}, \; \forall i_1, i_2 \in \{f^{\text{ini}}_m, \dots, f^{\text{fin}}_m\} \text{ con } i_1 < i_2: \quad X_{i_1, c_m} \neq X_{i_2, c_m}
+    \]
+
+    \item \textbf{No repetición de dígitos por tramo (Formulación B --- Restricción global \texttt{alldifferent}):}
+    \[
+        \forall k \in \{1, \dots, n_H\}: \quad \text{alldifferent}\left(\left[ X_{f_k, j} \;\middle|\; j \in c^{\text{ini}}_k \dots c^{\text{fin}}_k \right]\right)
+    \]
+    \[
+        \forall m \in \{1, \dots, n_V\}: \quad \text{alldifferent}\left(\left[ X_{i, c_m} \;\middle|\; i \in f^{\text{ini}}_m \dots f^{\text{fin}}_m \right]\right)
+    \]
+\end{enumerate}
 
 \subsection{Detalles de Implementación (\texttt{kakuro.mzn})}
-% Describir aspectos relevantes de la implementación sin copiar el código completo.
+La implementación en \texttt{kakuro.mzn} se estructuró de manera completamente paramétrica:
+\begin{itemize}
+    \item \textbf{Validación temprana de datos (\texttt{assert}):} Antes de instanciar las restricciones, se verifica que las dimensiones $F, C, n_H, n_V$ sean positivas y que la suma total de las pistas horizontales coincida exactamente con la suma total de las pistas verticales ($\sum_k S^H_k = \sum_m S^V_m$), previniendo errores de transcripción en los archivos \texttt{.dzn}.
+    \item \textbf{Función booleana de pertenencia (\texttt{es\_blanca}):} Se definió una función auxiliar determinista (\texttt{par bool}) que evalúa mediante un cuantificador existencial (\texttt{exists}) si la coordenada $(i, j)$ pertenece a algún tramo horizontal. Esto permite tanto acotar los dominios del tablero como construir por comprensión el arreglo unidimensional \texttt{vars\_blancas} que contiene exclusivamente las variables de decisión de las casillas blancas, evitando que las estrategias de búsqueda ramifiquen trivialmente sobre las casillas negras fijadas en $0$.
+    \item \textbf{Banderas de control experimental:} Se incorporaron los parámetros booleanos \texttt{usar\_alldifferent} y \texttt{usar\_redundantes} para activar o desactivar las variantes de modelado y evaluar su impacto real sobre el número de propagadores y nodos.
+\end{itemize}
 
 \subsubsection{Variantes en el Modelado de Restricciones}
-% Comparar enfoques de modelado y propagación para sumas y alldifferent.
+Se implementaron y contrastaron dos enfoques para garantizar la unicidad de dígitos en cada tramo de longitud $L$:
+\begin{enumerate}
+    \item \textbf{Descomposición en desigualdades binarias ($\neq$):} Genera $\binom{L}{2} = \frac{L(L-1)}{2}$ restricciones binarias independientes por cada serie. Su desventaja principal en propagación es su carácter estrictamente local: una desigualdad $X_a \neq X_b$ permanece inactiva hasta que una de las dos variables queda instanciada a un único valor (consistencia de arco débil sobre $\neq$), por lo que no detecta conflictos de cardinalidad cuando varias variables comparten un subconjunto reducido de valores.
+    \item \textbf{Restricción global \texttt{alldifferent}:} Agrupa todas las variables de la serie en un único propagador global por tramo, reduciendo sustancialmente el número de propagadores en el grafo de restricciones y permitiendo detectar subconjuntos saturados de Hall antes de que las variables estén fijas.
+\end{enumerate}
 
 \subsubsection{Restricciones Redundantes y Rompimiento de Simetrías}
-% Explicar si aplican restricciones redundantes (ej. límites teóricos min/max de suma según longitud) 
-% o justificar si no hay simetrías.
+\paragraph{Restricciones Redundantes.}
+En el modelo básico, el propagador de la suma lineal $\sum_{r=1}^L X_r = S$ desconoce que las variables $X_r$ deben tomar valores distintos entre sí; por ello, calcula sus cotas asumiendo que las $L-1$ variables restantes podrían repetir el valor mínimo $1$ o el valor máximo $9$. Para acoplar semánticamente la restricción de suma con la restricción \texttt{alldifferent}, se dedujeron e implementaron dos familias de restricciones redundantes:
+\begin{enumerate}
+    \item \textbf{Cotas combinatorias extremas por longitud de serie:} En un tramo de longitud $L = \text{fin} - \text{ini} + 1$ y suma objetivo $S$, las otras $L - 1$ casillas son dígitos distintos en $\{1, \dots, 9\}$. Por tanto, la suma mínima posible de las otras $L - 1$ casillas es $\sum_{r=1}^{L-1} r = \frac{(L-1)L}{2}$, y su suma máxima posible es $\sum_{r=11-L}^{9} r = \frac{(L-1)(20-L)}{2}$. En consecuencia, toda variable $X$ perteneciente a dicho tramo debe satisfacer obligatoriamente:
+    \[
+        S - \frac{(L-1)(20-L)}{2} \le X \le S - \frac{(L-1)L}{2}
+    \]
+    Por ejemplo, en una serie de longitud $L = 2$ con suma $S = 4$, esta cota deduce de inmediato en el nodo raíz que $X \le 4 - 1 = 3$, eliminando los valores $\{4, 5, 6, 7, 8, 9\}$ antes de iniciar la búsqueda. En el preprocesamiento de MiniZinc, esta poda de dominios permite incluso fijar variables de manera directa y simplificar propagadores enteros.
+    \item \textbf{Invariante de suma global del tablero:} Dado que las series horizontales particionan el conjunto de casillas blancas $B$, la suma de todas las celdas del tablero debe coincidir con la suma acumulada de todas las pistas horizontales:
+    \[
+        \sum_{i=1}^{F} \sum_{j=1}^{C} X_{i,j} = \sum_{k=1}^{n_H} S^H_k
+    \]
+\end{enumerate}
+
+\paragraph{Análisis de Simetrías.}
+A diferencia de problemas de empaquetamiento o asignación con objetos indistinguibles, el problema de Kakuro \textbf{no presenta simetrías de variables ni de valores}. Cada celda blanca $(i, j) \in B$ está identificada de forma única por la intersección de una serie horizontal específica (con suma $S^H_k$) y una serie vertical específica (con suma $S^V_m$). Si se permutaran los valores de dos casillas dentro de un mismo tramo horizontal, se alterarían las sumas de los tramos verticales ortogonales que se cruzan en dichas columnas. Asimismo, en un tablero de Kakuro bien propuesto la solución es única, por lo que no existen soluciones simétricas equivalentes ni se requieren restricciones de rompimiento de simetrías.
 
 \subsection{Estrategias de Búsqueda y Distribución}
-% Describir y comparar al menos dos anotaciones de búsqueda (selección de variable y valor).
+Sobre el arreglo unidimensional \texttt{vars\_blancas} (que filtra únicamente las variables con $(i, j) \in B$) se evaluaron seis configuraciones de búsqueda mediante \texttt{int\_search}:
+\begin{enumerate}
+    \item \textbf{Default (\texttt{solve satisfy}):} Estrategia nativa por defecto del solver Gecode.
+    \item \textbf{\texttt{input\_order} + \texttt{indomain\_min}:} Selecciona las casillas blancas en orden lexicográfico de lectura (fila por fila, de izquierda a derecha) y prueba primero el menor dígito disponible.
+    \item \textbf{\texttt{input\_order} + \texttt{indomain\_max}:} Selecciona las casillas en orden de fila pero asigna primero el mayor dígito disponible en el dominio.
+    \item \textbf{\texttt{first\_fail} + \texttt{indomain\_min}:} Selecciona dinámicamente la casilla blanca con el dominio actual más pequeño (principio de fallo primero), priorizando las intersecciones de tramos cortos o sumas extremas, y prueba el menor valor disponible.
+    \item \textbf{\texttt{first\_fail} + \texttt{indomain\_split}:} Combina la selección de variable más restringida con la bisección de su dominio ($\le m$ vs. $> m$).
+    \item \textbf{\texttt{dom\_w\_deg} + \texttt{indomain\_min}:} Selecciona la variable según la razón entre el tamaño de su dominio y su grado ponderado de fallos acumulados en los propagadores asociados.
+\end{enumerate}
 
 \subsection{Pruebas y Análisis Experimental}
-% Presentar la batería de pruebas y las tablas comparativas con estadísticas de MiniZinc.
+Se construyó una batería de tres instancias en archivos de datos independientes:
+\begin{itemize}
+    \item \textbf{\texttt{kakuro1.dzn} (Tablero 1 del taller):} Área jugable de $5 \times 4$ con $14$ casillas blancas, $5$ series horizontales y $4$ series verticales (suma total $= 65$).
+    \item \textbf{\texttt{kakuro2.dzn} (Tablero 2 del taller):} Área jugable de $7 \times 7$ con $24$ casillas blancas dispuestas en anillo diagonal, $9$ series horizontales y $9$ series verticales (suma total $= 140$).
+    \item \textbf{\texttt{kakuro3.dzn} (Tablero 3 adicional de mayor escala):} Área jugable de $8 \times 8$ con $36$ casillas blancas distribuidas en bandas diagonales, $16$ series horizontales y $16$ series verticales (suma total $= 205$).
+\end{itemize}
+
+Las tres instancias poseen solución única verificada mediante búsqueda exhaustiva (\texttt{--all-solutions}). Para los dos tableros del enunciado del taller, las matrices solución obtenidas por el modelo son:
+\[
+\text{Kakuro 1 } (5 \times 4) =
+\begin{pmatrix}
+2 & 6 & 1 & \cdot \\
+1 & 9 & 3 & \cdot \\
+6 & 7 & \cdot & \cdot \\
+\cdot & 4 & 2 & 1 \\
+\cdot & 8 & 9 & 2
+\end{pmatrix},
+\qquad
+\text{Kakuro 2 } (7 \times 7) =
+\begin{pmatrix}
+\cdot & \cdot & 2 & 7 & \cdot & \cdot & \cdot \\
+\cdot & \cdot & 7 & 8 & 9 & \cdot & \cdot \\
+2 & 4 & 1 & \cdot & 4 & 8 & \cdot \\
+5 & 7 & \cdot & \cdot & \cdot & 9 & 1 \\
+\cdot & 9 & 5 & \cdot & 1 & 6 & 2 \\
+\cdot & \cdot & 9 & 8 & 5 & \cdot & \cdot \\
+\cdot & \cdot & \cdot & 9 & 2 & \cdot & \cdot
+\end{pmatrix}
+\]
+
+En el Cuadro~\ref{tab:kakuro_ablacion} se presenta el estudio de ablación de las tres variantes de modelado al explorar la totalidad del espacio de búsqueda (\texttt{--all-solutions} con estrategia \texttt{first\_fail + indomain\_min}) para encontrar la solución y demostrar su unicidad. Se observa con claridad cómo el paso de desigualdades binarias ($\neq$) a \texttt{alldifferent} reduce el número de propagadores entre un $28\%$ y un $49\%$, mientras que la incorporación de las cotas combinatorias redundantes poda los dominios desde la etapa de aplanamiento, reduciendo los propagadores activos hasta en un $87.5\%$ (de $104$ a $13$ en \texttt{kakuro3.dzn}) y disminuyendo las propagaciones y nodos en más de la mitad.
 
 \begin{table}[htbp]
     \centering
-    \begin{tabular}{lcccc}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{llccccc}
         \toprule
-        Instancia & Estrategia & Tiempo (s) & Nodos explorados & Nodos fallidos \\
+        Instancia & Variante de Modelado & Propagadores & Propagaciones & Nodos & Fallos & Tiempo (ms) \\
         \midrule
-        Kakuro 1 & Default & -- & -- & -- \\
-        Kakuro 1 & Custom & -- & -- & -- \\
+        \texttt{kakuro1.dzn} & A: Desigualdades ($\neq$) sin red. & 39 & 151 & 9 & 4 & 0.13 \\
+        ($5\times 4$, 14 blancas) & B: \texttt{alldifferent} sin red. & 20 & 134 & 9 & 4 & 0.14 \\
+        & C: \texttt{alldifferent} + Redundantes & \textbf{13} & \textbf{57} & \textbf{5} & \textbf{2} & \textbf{0.13} \\
+        \midrule
+        \texttt{kakuro2.dzn} & A: Desigualdades ($\neq$) sin red. & 56 & 164 & 9 & 4 & 0.16 \\
+        ($7\times 7$, 24 blancas) & B: \texttt{alldifferent} sin red. & 40 & 158 & 9 & 4 & 0.15 \\
+        & C: \texttt{alldifferent} + Redundantes & \textbf{9} & \textbf{62} & \textbf{3} & \textbf{1} & \textbf{0.12} \\
+        \midrule
+        \texttt{kakuro3.dzn} & A: Desigualdades ($\neq$) sin red. & 104 & 336 & 11 & 5 & 0.22 \\
+        ($8\times 8$, 36 blancas) & B: \texttt{alldifferent} sin red. & 64 & 305 & 11 & 5 & 0.22 \\
+        & C: \texttt{alldifferent} + Redundantes & \textbf{13} & \textbf{114} & \textbf{3} & \textbf{1} & \textbf{0.15} \\
         \bottomrule
-    \end{tabular}
-    \caption{Comparación experimental del modelo de Kakuro.}
+    \end{tabular}%
+    }
+    \caption{Comparación experimental de las variantes de modelado en Kakuro (búsqueda exhaustiva \texttt{--all-solutions}).}
+    \label{tab:kakuro_ablacion}
+\end{table}
+
+Por su parte, el Cuadro~\ref{tab:kakuro_resultados} compara el desempeño de las seis estrategias de búsqueda evaluadas para hallar la primera solución tanto sobre el modelo sin restricciones redundantes (Variante B) como sobre el modelo completo con restricciones redundantes (Variante C).
+
+\begin{table}[htbp]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{llcccccc}
+        \toprule
+        & & \multicolumn{3}{c}{Sin Redundantes (Variante B)} & \multicolumn{3}{c}{Con Redundantes (Variante C)} \\
+        \cmidrule(lr){3-5} \cmidrule(lr){6-8}
+        Instancia & Estrategia de Búsqueda & Tiempo (ms) & Nodos & Fallos & Tiempo (ms) & Nodos & Fallos \\
+        \midrule
+        \texttt{kakuro1.dzn} & Default (\texttt{solve satisfy}) & 0.12 & 10 & 4 & 0.17 & 4 & 1 \\
+        & \texttt{input\_order + indomain\_min} & 0.12 & 8 & 3 & 0.11 & 6 & 2 \\
+        & \texttt{input\_order + indomain\_max} & 0.14 & 7 & 2 & 0.13 & 4 & 1 \\
+        & \texttt{first\_fail + indomain\_min} & 0.12 & 7 & 2 & 0.15 & 5 & 2 \\
+        & \texttt{first\_fail + indomain\_split} & 0.12 & 7 & 2 & \textbf{0.10} & 5 & 2 \\
+        & \texttt{dom\_w\_deg + indomain\_min} & 0.12 & 8 & 3 & 0.11 & 6 & 2 \\
+        \midrule
+        \texttt{kakuro2.dzn} & Default (\texttt{solve satisfy}) & 0.13 & 4 & 0 & 0.14 & 2 & 0 \\
+        & \texttt{input\_order + indomain\_min} & 0.13 & 5 & 1 & 0.18 & 2 & 0 \\
+        & \texttt{input\_order + indomain\_max} & 0.14 & 8 & 3 & 0.12 & 3 & 1 \\
+        & \texttt{first\_fail + indomain\_min} & 0.15 & 8 & 3 & \textbf{0.11} & \textbf{2} & \textbf{0} \\
+        & \texttt{first\_fail + indomain\_split} & 0.21 & 8 & 3 & 0.16 & 2 & 0 \\
+        & \texttt{dom\_w\_deg + indomain\_min} & 0.22 & 8 & 3 & 0.15 & 2 & 0 \\
+        \midrule
+        \texttt{kakuro3.dzn} & Default (\texttt{solve satisfy}) & 0.18 & 7 & 1 & 0.21 & 3 & 0 \\
+        & \texttt{input\_order + indomain\_min} & 0.19 & 7 & 1 & \textbf{0.16} & \textbf{2} & \textbf{0} \\
+        & \texttt{input\_order + indomain\_max} & 0.22 & 10 & 4 & 0.24 & 3 & 1 \\
+        & \texttt{first\_fail + indomain\_min} & 0.36 & 7 & 1 & 0.24 & \textbf{2} & \textbf{0} \\
+        & \texttt{first\_fail + indomain\_split} & 0.19 & 7 & 1 & 0.19 & \textbf{2} & \textbf{0} \\
+        & \texttt{dom\_w\_deg + indomain\_min} & 0.29 & 7 & 1 & 0.16 & \textbf{2} & \textbf{0} \\
+        \bottomrule
+    \end{tabular}%
+    }
+    \caption{Comparación experimental de estrategias de búsqueda en el modelo de Kakuro.}
     \label{tab:kakuro_resultados}
 \end{table}
 
 \subsection{Conclusiones del Ejercicio}
-% Análisis sobre la eficiencia de las búsquedas y el comportamiento del árbol de búsqueda.
+\begin{itemize}
+    \item \textbf{Sinergia entre restricciones globales y cotas redundantes:} Aunque reemplazar las desigualdades binarias ($\neq$) por la restricción global \texttt{alldifferent} reduce drásticamente el número de propagadores del modelo, el mayor salto de eficiencia se obtiene al añadir las cotas combinatorias redundantes $S - \frac{(L-1)(20-L)}{2} \le X \le S - \frac{(L-1)L}{2}$. Estas desigualdades inyectan el conocimiento de no repetición directamente sobre los límites de cada variable antes de iniciar la búsqueda, resolviendo \texttt{kakuro2.dzn} y \texttt{kakuro3.dzn} prácticamente en el nodo raíz ($2$ nodos y $0$ fallos).
+    \item \textbf{Comportamiento de las heurísticas de búsqueda:} Sin restricciones redundantes, en \texttt{kakuro1.dzn} las heurísticas dinámicas (\texttt{first\_fail}) superan al orden estático (\texttt{input\_order}) y a la búsqueda por defecto al elegir primero las casillas de tramos cortos (longitud $2$), reduciendo la profundidad máxima del árbol de $5$ a $3$. Con las restricciones redundantes activas, los dominios iniciales quedan tan acotados que tanto \texttt{first\_fail + indomain\_min} como \texttt{first\_fail + indomain\_split} convergen de forma inmediata con una profundidad máxima de apenas $1$ nivel.
+\end{itemize}

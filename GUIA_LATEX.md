@@ -1,6 +1,6 @@
 # Guía de Instalación y Uso de LaTeX — Taller 1 (CSP)
 
-Esta guía explica los requisitos, la instalación y el flujo de trabajo para colaborar en el informe del **Taller 1: Programación por Restricciones (CSP)** utilizando **LaTeX Workshop** en **Antigravity IDE** o **VS Code**.
+Esta guía explica los requisitos, la instalación y el flujo de trabajo para colaborar en el informe del **Taller 1: Programación por Restricciones (CSP)** utilizando **LaTeX Workshop** en **Visual Studio Code (VS Code)**.
 
 ---
 
@@ -8,7 +8,7 @@ Esta guía explica los requisitos, la instalación y el flujo de trabajo para co
 
 Para trabajar en el informe localmente se requieren tres componentes:
 
-1. **Editor de Código:** [Antigravity IDE](https://antigravity.google) o [Visual Studio Code](https://code.visualstudio.com/).
+1. **Editor de Código:** [Visual Studio Code](https://code.visualstudio.com/).
 2. **Extensión:** **LaTeX Workshop** (desarrollada por *James-Yu*), disponible en el Marketplace de extensiones (`Ctrl + Shift + X`).
 3. **Distribución de LaTeX (Compilador):**
    - **Windows:** [MiKTeX](https://miktex.org/download) *(Recomendado)*.
@@ -26,23 +26,38 @@ Si aún no tienes MiKTeX instalado:
    - Abre **MiKTeX Console** desde el menú de inicio de Windows.
    - Ve a **Settings** y asegúrate de que *You can configure whether missing packages are installed on-the-fly* esté en **"Always"**.
    - Haz clic en **Updates** -> **Check for updates** para tener los paquetes actualizados.
-4. **Importante:** Cierra por completo y vuelve a abrir tu editor (Antigravity IDE o VS Code) para que reconozca las variables de entorno del sistema (`PATH`).
+4. **Importante:** Cierra por completo y vuelve a abrir tu editor (VS Code) para que reconozca las variables de entorno del sistema (`PATH`).
 
 ---
 
 ## 3. Estructura del Proyecto
 
-El informe está organizado de forma modular para que varios integrantes puedan trabajar al mismo tiempo sin generar conflictos de Git:
+El proyecto y el informe están organizados de forma modular para que varios integrantes puedan trabajar al mismo tiempo sin generar conflictos de Git:
 
 ```text
 taller1-CSP/
 ├── .vscode/
 │   └── settings.json          # Configuración de compilación con pdflatex y rutas
+├── problemas/                 # Modelos MiniZinc (.mzn) por numeral del taller
+│   ├── 2.3/
+│   │   └── secuencia.mzn
+│   └── 2.4/
+│       └── acertijo.mzn
+├── datos/                     # Instancias de prueba (.dzn) por numeral del taller
+│   └── 2.3/
+│       └── secuencia_n*.dzn
+├── pruebas/                   # Suites de pruebas automatizadas por numeral
+│   ├── 2.3/
+│   │   └── test_secuencia.py
+│   └── 2.4/
+│       └── test_acertijo.py
 ├── Informe/
 │   ├── main.tex               # Archivo raíz principal (portada, índice e imports)
 │   ├── main.pdf               # PDF compilado resultante
 │   ├── Imagenes/
-│   │   └── logoUV.jpg         # Imágenes, diagramas y logos
+│   │   ├── logoUV.jpg         # Imágenes y logos institucionales (raíz)
+│   │   ├── 2.3/               # Figuras y diagramas de Secuencia Mágica
+│   │   └── 2.4/               # Figuras y diagramas de Acertijo Lógico
 │   └── secciones/             # Subarchivos modulares por problema
 │       ├── 01_sudoku.tex
 │       ├── 02_kakuro.tex
@@ -89,17 +104,17 @@ taller1-CSP/
    *No borres esta línea.* Le indica a la extensión que al guardar ese archivo hijo debe compilar el documento completo `main.tex`.
 
 ### 5.2. ¿Cómo agregar imágenes?
-1. Guarda la imagen en la carpeta `Informe/Imagenes/` (ej: `grafo.png`).
-2. En tu archivo de sección, insértala así:
+1. Si la imagen es general del documento, guárdala en la raíz de `Informe/Imagenes/` (ej: `logoUV.jpg`). Si es específica de un problema, guárdala en su subcarpeta correspondiente (ej: `Informe/Imagenes/2.3/grafo.png`).
+2. En tu archivo de sección, insértala indicando la subcarpeta relativa a `Imagenes/`:
    ```latex
    \begin{figure}[htbp]
        \centering
-       \includegraphics[width=0.7\textwidth]{grafo.png}
+       \includegraphics[width=0.7\textwidth]{2.3/grafo.png}
        \caption{Árbol de búsqueda para la instancia 1.}
        \label{fig:arbol_instancia1}
    \end{figure}
    ```
-   *(Nota: Gracias al comando `\graphicspath{{Imagenes/}}` en el preámbulo, no es necesario escribir toda la ruta).*
+   *(Nota: Gracias al comando `\graphicspath{{Imagenes/}}` en el preámbulo, solo necesitas especificar la ruta relativa desde `Imagenes/`).*
 
 ### 5.3. ¿Cómo agregar tablas de resultados?
 En cada sección ya tienes una plantilla con `booktabs`. Puedes replicarla así:

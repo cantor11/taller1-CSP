@@ -1,0 +1,12 @@
+% =============================================================================
+% Taller 1 - Problema 2.6: Construccion de un Rectangulo - Instancia 2 (Mediana)
+% Rectangulo de 8 x 5 (area 40) con n = 9 cuadrados
+% =============================================================================
+
+W = 8;
+H = 5;
+n = 9;
+lado = [3, 3, 2, 2, 2, 2, 2, 1, 1];
+
+usar_redundantes = true;
+romper_simetrias = true;
