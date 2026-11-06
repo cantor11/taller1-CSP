@@ -1,14 +1,13 @@
 % =============================================================================
 % Taller 1 - Problema 2.2: Kakuro
-% Asignatura: Programacion por Restricciones
-% Universidad del Valle
+% Juan Diego Cárdenas - 2416437
+% Junior Cantor Arevalo - 2224949
+% Cristian David Cabrera Pantoja - 2226285
 % =============================================================================
 
 include "alldifferent.mzn";
 
-% -----------------------------------------------------------------------------
-% 1. Lectura de Parametros (Datos de Entrada)
-% -----------------------------------------------------------------------------
+% Lectura de Datos
 int: F; % Numero de filas del area jugable
 int: C; % Numero de columnas del area jugable
 int: num_h; % Numero de series (tramos) horizontales
@@ -34,9 +33,7 @@ constraint assert(
     "Archivo de datos invalido: la suma de pistas horizontales no coincide con las verticales"
 );
 
-% -----------------------------------------------------------------------------
-% 2. Variables de Decision y Dominios
-% -----------------------------------------------------------------------------
+% Variables
 % Matriz del tablero: las casillas blancas toman valores en 1..9 y las negras se fijan en 0
 array[1..F, 1..C] of var 0..9: tablero;
 
@@ -55,21 +52,19 @@ constraint forall(i in 1..F, j in 1..C)(
     endif
 );
 
-% -----------------------------------------------------------------------------
-% 3. Restricciones Principales del Modelo
-% -----------------------------------------------------------------------------
+% Restricciones
 
-% 3.1. Suma de cada serie horizontal igual a la pista indicada
+% Suma de cada serie horizontal igual a la pista indicada
 constraint forall(k in 1..num_h)(
     sum(j in pistas_h[k,2]..pistas_h[k,3])(tablero[pistas_h[k,1], j]) = pistas_h[k,4]
 );
 
-% 3.2. Suma de cada serie vertical igual a la pista indicada
+% Suma de cada serie vertical igual a la pista indicada
 constraint forall(m in 1..num_v)(
     sum(i in pistas_v[m,2]..pistas_v[m,3])(tablero[i, pistas_v[m,1]]) = pistas_v[m,4]
 );
 
-% 3.3. No repeticion de digitos en cada serie horizontal y vertical
+% No repeticion de digitos en cada serie horizontal y vertical
 % Se implementan dos variantes comparables: global alldifferent vs desigualdades !=
 constraint if usar_alldifferent then
     forall(k in 1..num_h)(
@@ -91,9 +86,7 @@ else
     )
 endif;
 
-% -----------------------------------------------------------------------------
-% 4. Restricciones Redundantes
-% -----------------------------------------------------------------------------
+% Restricciones redundantes
 % Cotas combinatorias de valor minimo y maximo en funcion de la longitud L del tramo
 % y conservacion de la suma global de todas las celdas jugables.
 constraint if usar_redundantes then
@@ -126,9 +119,7 @@ else
     true
 endif;
 
-% -----------------------------------------------------------------------------
-% 5. Estrategia de Busqueda y Distribucion
-% -----------------------------------------------------------------------------
+% Estrategia de búsqueda
 % Arreglo 1D unicamente con las variables de decision de casillas blancas
 array[int] of var 1..9: vars_blancas = [
     tablero[i,j] | i in 1..F, j in 1..C where es_blanca(i, j)
@@ -141,9 +132,7 @@ solve :: int_search(vars_blancas, first_fail, indomain_min, complete) satisfy;
 % solve :: int_search(vars_blancas, first_fail, indomain_split, complete) satisfy;
 % solve :: int_search(vars_blancas, dom_w_deg, indomain_min, complete) satisfy;
 
-% -----------------------------------------------------------------------------
-% 6. Impresion de la Solucion
-% -----------------------------------------------------------------------------
+% Salida
 output [
     if fix(tablero[i,j]) == 0 then " . " else " " ++ show(tablero[i,j]) ++ " " endif ++
     if j == C then "\n" else "" endif

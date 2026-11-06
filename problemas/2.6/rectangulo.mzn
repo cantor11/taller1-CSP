@@ -1,14 +1,13 @@
 % =============================================================================
-% Taller 1 - Problema 2.6: Construccion de un Rectangulo
-% Asignatura: Programacion por Restricciones
-% Universidad del Valle
+% Taller 1 - Problema 2.6: Construcción de un Rectángulo
+% Juan Diego Cárdenas - 2416437
+% Junior Cantor Arevalo - 2224949
+% Cristian David Cabrera Pantoja - 2226285
 % =============================================================================
 
 include "cumulative.mzn";
 
-% -----------------------------------------------------------------------------
-% 1. Lectura de Parametros (Datos de Entrada)
-% -----------------------------------------------------------------------------
+% Lectura de Datos
 int: n;                    % Numero de cuadrados a ensamblar
 array[1..n] of int: lado;  % Lado de cada cuadrado (ordenados de mayor a menor)
 int: W;                    % Anchura total del rectangulo contenedor
@@ -28,9 +27,7 @@ constraint assert(forall(i in 1..n-1)(lado[i] >= lado[i+1]),
 constraint assert(sum(i in 1..n)(lado[i] * lado[i]) == W * H,
     "Archivo de datos invalido: la suma de areas de los cuadrados no coincide con W * H");
 
-% -----------------------------------------------------------------------------
-% 2. Variables de Decision y Dominios
-% -----------------------------------------------------------------------------
+% Variables
 int: max_x = W - min(lado);
 int: max_y = H - min(lado);
 
@@ -38,33 +35,27 @@ int: max_y = H - min(lado);
 array[1..n] of var 0..max_x: x;
 array[1..n] of var 0..max_y: y;
 
-% -----------------------------------------------------------------------------
-% 3. Predicados Auxiliares
-% -----------------------------------------------------------------------------
+% Predicados auxiliares
 % Predicado disyuntivo de no solapamiento 2D (basado en no_overlap de 7.jobshop2.mzn)
 predicate no_solapar(var int: x1, int: l1, var int: y1,
                      var int: x2, int: l2, var int: y2) =
     x1 + l1 <= x2 \/ x2 + l2 <= x1 \/
     y1 + l1 <= y2 \/ y2 + l2 <= y1;
 
-% -----------------------------------------------------------------------------
-% 4. Restricciones Principales del Modelo
-% -----------------------------------------------------------------------------
+% Restricciones
 
-% 4.1. Contencion dentro de las fronteras del rectangulo W x H (dominio exacto)
+% Contencion dentro de las fronteras del rectangulo W x H (dominio exacto)
 constraint forall(i in 1..n)(
     x[i] <= W - lado[i] /\
     y[i] <= H - lado[i]
 );
 
-% 4.2. No solapamiento por pares entre cuadrados distintos
+% No solapamiento por pares entre cuadrados distintos
 constraint forall(i, j in 1..n where i < j)(
     no_solapar(x[i], lado[i], y[i], x[j], lado[j], y[j])
 );
 
-% -----------------------------------------------------------------------------
-% 5. Restricciones Redundantes
-% -----------------------------------------------------------------------------
+% Restricciones redundantes
 % Proyeccion de recursos acumulados sobre los ejes X e Y (estilo 6.moving.mzn):
 % - En cualquier corte vertical x, la suma de alturas de los cuadrados activos no supera H.
 % - En cualquier corte horizontal y, la suma de anchuras de los cuadrados activos no supera W.
@@ -75,16 +66,14 @@ else
     true
 endif;
 
-% -----------------------------------------------------------------------------
-% 6. Rompimiento de Simetrias
-% -----------------------------------------------------------------------------
+% Rompimiento de simetrías
 constraint if romper_simetrias then
-    % 6.1. Simetria de permutacion entre cuadrados de igual tamano:
+    % Simetria de permutacion entre cuadrados de igual tamano:
     % Se impone orden lexicografico estricto sobre (x[i], y[i]) cuando lado[i] == lado[i+1]
     forall(i in 1..n-1 where lado[i] == lado[i+1])(
         x[i] < x[i+1] \/ (x[i] == x[i+1] /\ y[i] < y[i+1])
     ) /\
-    % 6.2. Simetrias geometricas del contenedor (reflexion horizontal, vertical y 180 grados):
+    % Simetrias geometricas del contenedor (reflexion horizontal, vertical y 180 grados):
     % Se restringe el centro del cuadrado mas grande (i = 1) al cuadrante inferior izquierdo
     2 * x[1] <= W - lado[1] /\
     2 * y[1] <= H - lado[1] /\
@@ -94,9 +83,7 @@ else
     true
 endif;
 
-% -----------------------------------------------------------------------------
-% 7. Estrategia de Busqueda y Distribucion
-% -----------------------------------------------------------------------------
+% Estrategia de búsqueda
 % Arreglo intercalado [x[1], y[1], x[2], y[2], ..., x[n], y[n]] que aprovecha
 % el orden decreciente de 'lado' para ubicar primero los cuadrados mas grandes
 array[1..2*n] of var int: vars_xy = [
@@ -112,9 +99,7 @@ solve :: int_search(vars_xy, input_order, indomain_min, complete) satisfy;
 % solve :: seq_search([ int_search(x, first_fail, indomain_min, complete), int_search(y, first_fail, indomain_min, complete) ]) satisfy;
 % solve :: int_search(vars_xy, dom_w_deg, indomain_split, complete) satisfy;
 
-% -----------------------------------------------------------------------------
-% 8. Impresion de la Solucion
-% -----------------------------------------------------------------------------
+% Salida
 output [
     "Dimensiones del rectangulo: W = \(W), H = \(H) (Area = \(W * H))\n"
 ] ++ [

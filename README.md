@@ -3,11 +3,11 @@
 Proyecto del Taller 1 para la asignatura **Programación por Restricciones**, Escuela de Ingeniería de Sistemas y Computación, **Universidad del Valle**.
 
 ## Integrantes
-- Cristian David Cabrera Pantoja
-- Junior Orlando Cantor Arevalo
-- Juan Diego Cárdenas Mejía
+- Juan Diego Cárdenas Mejía - 2416437
+- Junior Orlando Cantor Arevalo - 2224949
+- Cristian David Cabrera Pantoja - 2226285
 
-**Profesor:** Juan Francisco Díaz Frías
+**Profesor:** Robinson Duque
 
 ---
 

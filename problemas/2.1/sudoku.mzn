@@ -1,15 +1,16 @@
-%Modelado de problema de Sudoku
+% =============================================================================
+% Taller 1 - Problema 2.1: Sudoku
 % Juan Diego Cárdenas - 2416437
-% Junior Cantor Arevalo
-% Cristian David Cabrera Pantoja
+% Junior Cantor Arevalo - 2224949
+% Cristian David Cabrera Pantoja - 2226285
+% =============================================================================
 
-% Importaciones
 include "globals.mzn";
 
-% Párametros
+% Lectura de Datos
 array[1..9, 1..9] of 0..9: puzzle; % Arreglo de valores iniciales
 
-%Variables
+% Variables
 array[1..9, 1..9] of var 1..9: solution; % Arreglo 2D de valores de solución
 
 % Restricciones
@@ -72,7 +73,7 @@ constraint forall (k, l in 0..2, i1,i2,j1,j2 in 1..3 where (3*(i1 - 1) + j1) < (
 );
 %*/
 
-%Restricciones redundantes
+% Restricciones redundantes
 % Sumas redundantes por Fila y Columna
 constraint forall(i in 1..9) (
     sum(j in 1..9)(solution[i, j]) == 45 /\
@@ -85,7 +86,7 @@ constraint forall(k, l in 0..2) (
 );
 
 
-%Estrategias de Búsqueda
+% Estrategia de búsqueda
 
 %Búsqueda principiante
 /*
@@ -118,7 +119,7 @@ solve :: int_search(
 */
 
 
-%Output
+% Salida
 output [
     show(solution[r, c]) ++ 
     (if c mod 3 == 0 /\ c < 9 then " | " else " " endif) ++

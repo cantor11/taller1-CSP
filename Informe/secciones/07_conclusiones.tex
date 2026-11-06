@@ -1,16 +1,74 @@
 % !TEX root = ../main.tex
 \section{Conclusiones Generales}
+\label{sec:conclusiones_generales}
 
-% Espacio para sintetizar los aprendizajes y conclusiones globales del taller según los criterios de evaluación:
-% 1. Efectividad del modelado declarativo con CSP frente a problemas combinatorios y lógicos.
-% 2. Impacto de las restricciones redundantes en la poda y propagación de los dominios.
-% 3. Importancia del rompimiento de simetrías en la reducción del árbol de búsqueda.
-% 4. Comparación de heurísticas de búsqueda y anotaciones en MiniZinc.
-% 5. Coherencia entre el modelado teórico y el desempeño práctico del solver.
+A lo largo del desarrollo de este taller se abordaron seis problemas combinatorios y lógicos de naturaleza diversa: rompecabezas numéricos matriciales (\textit{Sudoku} y \textit{Kakuro}), secuencias aritméticas autorreferenciales (\textit{Secuencia Mágica}), deducción lógica multiatributo (\textit{Acertijo Lógico}), ordenamiento lineal de permutaciones con preferencias espaciales (\textit{Ubicación de Personas en una Reunión}) y empaquetamiento geométrico ortogonal bidimensional (\textit{Construcción de un Rectángulo}).
 
-\begin{itemize}
-    \item \textbf{Modelado CSP y Expresividad:} ...
-    \item \textbf{Poda mediante Restricciones Redundantes:} ...
-    \item \textbf{Rompimiento de Simetrías:} ...
-    \item \textbf{Estrategias de Búsqueda y Distribución:} ...
-\end{itemize}
+A partir del modelamiento formal en el marco declarativo $\text{CSP}(\mathcal{FD})$, su implementación rigurosa en MiniZinc y el análisis experimental sistemático de los árboles de búsqueda, propagaciones, nodos fallidos y tiempos de respuesta provistos por los solvers \textbf{Gecode} y \textbf{Chuffed}, se derivan las siguientes conclusiones fundamentales:
+
+\subsection{Expresividad del Modelado Declarativo y Formulación Incondicional}
+
+\begin{enumerate}
+    \item \textbf{Eliminación de reificación mediante la elección adecuada del dominio:}
+    Uno de los aprendizajes metodológicos más valiosos del taller se manifestó en el \textit{Acertijo Lógico} (Punto 2.4). Frente al diseño tradicional indexado por persona —que requería cuantificaciones disyuntivas e implicaciones condicionadas para vincular apellidos y gustos musicales—, la elección de las edades finitas $E = \{24, 25, 26\}$ como dominio común de enlace permitió expresar todas las pistas del problema como igualdades y desigualdades algebraicas directas e incondicionales. Esta reformulación pura eliminó las $18$ variables booleanas auxiliares de semirreificación, reduciendo en un $87.1\%$ las propagaciones en el motor (de $70$ a $9$) y facilitando que el compilador resuelva el problema en el nodo raíz sin recurrir a bifurcaciones.
+    
+    \item \textbf{Superioridad operativa de las restricciones globales:}
+    En la totalidad de los problemas ensayados, el empleo de restricciones globales especializadas superó de forma contundente a las descomposiciones en redes de restricciones binarias elementales:
+    \begin{itemize}
+        \item En \textit{Kakuro} y \textit{Sudoku}, sustituir la red de desigualdades por pares ($\neq$) por el propagador global \texttt{alldifferent} no solo compactó el tamaño de la representación en FlatZinc (reduciendo los propagadores activos entre un $28\%$ y un $49\%$), sino que activó algoritmos de consistencia de hiper-arco basados en flujos y emparejamientos bipartitos capaces de detectar subconjuntos saturados de Hall antes de que las variables quedaran univaluadas.
+        \item En \textit{Secuencia Mágica}, el uso de la restricción global \texttt{count} frente a la suma explícita de variables indicadoras booleanas evitó la introducción cuadrática de $\Theta(n^2)$ variables auxiliares, disminuyendo en un orden de magnitud la memoria del motor y el tiempo de resolución.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{El Poder Operativo de las Restricciones Redundantes}
+
+Las restricciones redundantes demostraron ser el mecanismo más potente para compensar la miopía intrínseca de los propagadores locales de consistencia de arco:
+
+\begin{enumerate}
+    \item \textbf{Proyección de invariantes globales sobre hiperplanos algebraicos:}
+    En la \textit{Secuencia Mágica} (Punto 2.3), mientras los propagadores individuales de conteo no pueden inferir que la suma total de elementos está acotada cuando las variables están libres, la adición conjunta de las invariantes diofánticas $R_1$ ($\sum x_i = n$) y $R_2$ ($\sum (i-1)x_i = 0$) colapsó el espacio de búsqueda. En el propio nodo raíz, la consistencia de cotas dedujo la cota estricta $x_i \le \lfloor \frac{n-1}{i-1} \rfloor$, forzando dominio binario $\{0, 1\}$ para toda la segunda mitad de la secuencia. Este fenómeno redujo el crecimiento de nodos de cuadrático ($\Theta(n^2)$) a una ley estrictamente lineal ($n+1$ nodos para todo $n \ge 8$ par), alcanzando en $n=100$ una aceleración temporal superior a tres órdenes de magnitud ($2\,802\times$, pasando de $4\,007.51\text{ ms}$ a $1.43\text{ ms}$) y recortando el $99.96\%$ de las propagaciones.
+    
+    \item \textbf{Cotas analíticas extremas en tramos combinatorios:}
+    En el \textit{Kakuro} (Punto 2.2), las cotas combinatorias deducidas en función de la longitud del tramo $L$ y la suma objetivo $S$ acoplaron la restricción lineal de suma con la no repetición de dígitos, podando los extremos imposibles en el preprocesamiento y resolviendo tableros de hasta $8\times 8$ en apenas $3$ nodos y $1$ fallo.
+    
+    \item \textbf{Proyección acumulativa en empaquetamiento ortogonal:}
+    En la \textit{Construcción de un Rectángulo} (Punto 2.6), la restricción disyuntiva geométrica de no solapamiento sufre de propagación retardada. La formulación de restricciones redundantes acumulativas \texttt{cumulative} en los ejes $X$ e $Y$ proporcionó al solver una visión continua de la capacidad espacial, impidiendo que el motor explore ramas inviables donde la suma de perfiles de los bloques excede la altura $H$ o la anchura $W$. Esta redundancia redujo en más del $99.98\%$ los nodos explorados bajo heurísticas dinámicas en instancias grandes.
+\end{enumerate}
+
+\subsection{Rompimiento de Simetrías: Supresión de la Explosión Factorial}
+
+El análisis de automorfismos permitió contrastar problemas donde el rompimiento de simetrías es indispensable frente a problemas donde no existe simetría o su imposición sería errónea:
+
+\begin{enumerate}
+    \item \textbf{Eliminación masiva de estados isomórficos con recuperación formal:}
+    En el problema del \textit{Rectángulo} (Punto 2.6), convergieron dos fuentes ortogonales de simetría: las isometrías del contenedor (grupo diédrico $D_2$ o $D_4$) y las permutaciones internas de cuadrados gemelos ($\prod k_g!$). En la instancia mediana ($8\times 5$), no romper simetrías provocó el agotamiento del tiempo límite ($>5\text{ s}$) tras expandir más de $650\,000$ nodos por cada diseño geométrico repetido $1\,920$ veces; en contraste, fijar el cuadrado mayor al cuadrante inferior izquierdo e imponer orden lexicográfico entre cuadrados iguales permitió encontrar las $8$ soluciones canónicas en apenas $4.16\text{ ms}$ con $753$ nodos. De forma análoga, en la \textit{Reunión} (Punto 2.5), romper la simetría de inversión izquierda-derecha redujo el espacio de soluciones exactamente al $50\%$ ($4\,560 \to 2\,280$ soluciones). En ambos casos, se comprobó que toda solución canónica preserva la completitud del modelo, pues las soluciones descartadas pueden reconstruirse formalmente mediante transformaciones algebraicas afines e inversiones posicionales.
+    
+    \item \textbf{Certificación de ausencia de simetrías:}
+    En \textit{Kakuro}, \textit{Secuencia Mágica} y el \textit{Acertijo Lógico}, el análisis formal demostró que cada variable posee una identidad semántica única e intransferible ligada a pistas cruzadas o pesos posicionales. Se demostró que forzar órdenes canónicos en tales contextos eliminaría soluciones legítimas (volviendo artificialmente insatisfacibles instancias válidas), ratificando que el rompimiento de simetrías debe sustentarse siempre en un análisis matemático del grupo de invarianzas del problema.
+\end{enumerate}
+
+\subsection{Interacción No Lineal entre Modelado y Estrategias de Distribución}
+
+Uno de los resultados experimentales más significativos del taller es que \textbf{la mejor estrategia de búsqueda no puede seleccionarse de manera independiente al modelo}:
+
+\begin{enumerate}
+    \item \textbf{Inversión heurística condicionada por la poda:}
+    En la \textit{Secuencia Mágica}, bajo el modelo base sin redundantes, \texttt{input\_order} superó ampliamente a \texttt{first\_fail} ($55$ frente a $117$ nodos en $n=10$) debido a que los dominios iniciales eran perfectamente homogéneos de tamaño $n$. Sin embargo, al incorporar la restricción redundante $R_2$, la poda selectiva en la raíz creó una asimetría estructural en los dominios: bajo este nuevo panorama, \texttt{first\_fail} pasó a ser estrictamente óptima en todas las escalas evaluadas ($101$ nodos en $n=100$), mientras que \texttt{input\_order} exploró el doble de nodos ($199$).
+    
+    \item \textbf{Alineación entre orden físico y orden de instanciación:}
+    En el empaquetamiento de rectángulos, la heurística \textit{Largest-Square-First / Bottom-Left} (\texttt{input\_order} + \texttt{indomain\_min} sobre un vector intercalado $[x_i, y_i]$ con cuadrados ordenados decrecientemente) demostró ser insuperable ($4$ nodos en la instancia base), pues ataca primero los elementos de mayor volumen que condicionan el espacio global y ramifica de manera consistente con el anclaje del rompimiento de simetrías. Por el contrario, heurísticas como \texttt{indomain\_max} generaron conflictos severos al intentar posicionar bloques en las esquinas opuestas a las impuestas por las restricciones canónicas.
+    
+    \item \textbf{Invarianza bajo consistencia global completa:}
+    Cuando la propagación es capaz de alcanzar consistencia global completa en la raíz (como ocurrió en el \textit{Acertijo Lógico} con \texttt{alldifferent}), el espacio de búsqueda colapsa a profundidad $0$, tornando idéntico el rendimiento de todas las heurísticas de selección de variables y valores ($1$ nodo y $0$ fallos).
+\end{enumerate}
+
+\subsection{Síntesis Metodológica}
+
+El desarrollo integral de este taller consolida una metodología rigurosa para abordar problemas combinatorios complejos en Programación por Restricciones:
+\begin{enumerate}
+    \item \textbf{Fase 1 (Abstracción y Dominios):} Formular el problema buscando la representación más directa posible, minimizando o eliminando reificaciones y acotando los dominios finitos \textit{a priori} con base en las propiedades estructurales del problema.
+    \item \textbf{Fase 2 (Encapsulamiento Global):} Preferir sistemáticamente restricciones globales nativas (\texttt{alldifferent}, \texttt{cumulative}, \texttt{count}) frente a descomposiciones locales por pares, aprovechando los algoritmos polinomiales de filtrado especializado de los solvers modernos.
+    \item \textbf{Fase 3 (Refuerzo Algebraico):} Formular e incorporar invariantes redundantes independientes que conecten variables distantes y proyecten leyes globales de conservación, demostrando formalmente su redundancia lógica y midiendo su impacto de poda.
+    \item \textbf{Fase 4 (Simetrías y Canonicidad):} Identificar exhaustivamente los automorfismos de variables y valores, imponiendo restricciones canónicas que eliminen soluciones isomórficas y estableciendo el mecanismo explícito de reconstrucción de las soluciones omitidas.
+    \item \textbf{Fase 5 (Sintonización Heurística y Verificación):} Diseñar estrategias de distribución informadas por la geometría de los dominios podados y validar la corrección de los modelos mediante baterías sistemáticas de datos que incluyan casos borde, regímenes escalables e instancias infactibles.
+\end{enumerate}

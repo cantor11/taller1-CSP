@@ -1,14 +1,18 @@
 % =============================================================================
-% Taller 1 - Punto 2.4: Acertijo Logico
-% Programacion por Restricciones - Universidad del Valle
+% Taller 1 - Problema 2.4: Acertijo Lógico
+% Juan Diego Cárdenas - 2416437
+% Junior Cantor Arevalo - 2224949
+% Cristian David Cabrera Pantoja - 2226285
 % =============================================================================
 
 include "alldifferent.mzn";
 
+% Parámetros
 % Universo finito de edades posibles (Pista 5)
 set of int: EDADES = 24..26;
 
-% Variables de decision: cada variable representa la edad (24..26) del amigo
+% Variables
+% Cada variable representa la edad (24..26) del amigo
 % asociado al atributo correspondiente. Los dominios iniciales excluyen a priori
 % los valores imposibles deducibles de las pistas unarias y de orden estricto.
 
@@ -39,12 +43,13 @@ array[1..3] of string: etq_generos   = ["clasica", "pop", "jazz"];
 % Vector consolidado de variables para la anotacion de busqueda
 array[1..9] of var EDADES: vars = nombres ++ apellidos ++ generos;
 
-% 1. Restricciones estructurales de biyeccion por categoria
+% Restricciones
+% Restricciones estructurales de biyeccion por categoria
 constraint alldifferent(nombres);
 constraint alldifferent(apellidos);
 constraint alldifferent(generos);
 
-% 2. Restricciones relacionales binarias activas derivadas de las pistas
+% Restricciones relacionales binarias derivadas de las pistas
 % Pista 1: Juan es mas viejo que Gonzalez, a quien le gusta la musica clasica
 constraint Juan > Gonzalez;
 constraint Gonzalez = Clasica;
@@ -58,7 +63,7 @@ constraint Oscar != Lopez;
 % Pista 4: La musica favorita de Dario no es el jazz
 constraint Dario != Jazz;
 
-% Estrategia de busqueda y distribucion
+% Estrategia de búsqueda
 % Alternativas evaluadas experimentalmente:
 % solve satisfy;
 % solve :: int_search(vars, input_order, indomain_min, complete) satisfy;
@@ -68,7 +73,7 @@ constraint Dario != Jazz;
 % solve :: int_search(vars, dom_w_deg, indomain_min, complete) satisfy;
 solve :: int_search(vars, first_fail, indomain_min, complete) satisfy;
 
-% Reconstruccion declarativa por comprension asociando cada nombre con su edad
+% Salida
 output [
     etq_nombres[i] ++ " " ++
     concat([etq_apellidos[j] | j in 1..3 where fix(apellidos[j]) == fix(nombres[i])]) ++

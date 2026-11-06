@@ -1,12 +1,13 @@
-%Modelado de problema de Ubicación de personas en foto
+% =============================================================================
+% Taller 1 - Problema 2.5: Ubicación de personas en una reunión
 % Juan Diego Cárdenas - 2416437
-% Junior Cantor Arevalo
-% Cristian David Cabrera Pantoja
+% Junior Cantor Arevalo - 2224949
+% Cristian David Cabrera Pantoja - 2226285
+% =============================================================================
 
-% Importaciones
 include "globals.mzn";
 include "circuit.mzn";
-% Párametros
+% Lectura de Datos
 array[int] of string: personas; %Arreglo de personas de tamaño desconocido
 array[int, 1..2] of 1..length(personas): next; %Arreglo 2D de condiciones Next
 array[int, 1..2] of 1..length(personas): separate; %Arreglo 2D de condiciones Separate
@@ -15,7 +16,7 @@ int: N = length(personas);
 
 %/*
 % ============ Instancia Base  ============
-% Variables de decisión
+% Variables
 array[index_set(personas)] of var 1..length(personas): posiciones; % Arreglo para representar posiciones de personas
 
 % Restricciones
@@ -39,7 +40,7 @@ constraint forall(i in index_set_1of2(distance)) (
 );
 
   
-%Restricciones redundantes
+% Restricciones redundantes
 
 % Distancia mínima de separate
 constraint forall(i in index_set_1of2(separate)) (
@@ -49,11 +50,11 @@ constraint forall(i in index_set_1of2(separate)) (
 % Preserva la suma constante de las posiciones
 constraint sum(posiciones) = (N * (N + 1)) div 2;
 
-%Rompimiento de simetrías:
+% Rompimiento de simetrías
 % La persona 1 siempre se ubica en la primera mitad de la fila.
 constraint posiciones[1] < (N + 1) / 2;
 
-%Estrategias de búsqueda:
+% Estrategia de búsqueda
 %Búsqueda sencilla
 /*
 solve :: int_search(
@@ -73,7 +74,7 @@ solve :: int_search(
         complete) 
         satisfy;
 
-% Mapea cada posición (1..n) a la persona asignada
+% Salida
 output [
   "Posición en foto:\n"
 ] ++ [
@@ -85,7 +86,7 @@ output [
 
 /*
 % =============== Implementación alternativa ===============
-% Variables de decisión
+% Variables
 
 % sig[A] es la persona que está inmediatamente a la derecha de A (0 si es el final de la fila)
 array[0..N] of var 0..N: sig;
@@ -121,7 +122,7 @@ constraint forall(i in index_set_1of2(distance)) (
   constraint sig[0] < sum(p in 1..N where sig[p] == 0) (p);
   
   
-%Estrategias de búsqueda:
+% Estrategia de búsqueda
 %Búsqueda sencilla
 /*
 solve :: int_search(
